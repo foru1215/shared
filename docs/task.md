@@ -5,4 +5,5 @@
 - [x] Configure auto-sync on startup <!-- id: 4 -->
 - [x] Verify auto-sync and context portability <!-- id: 5 -->
 - [x] Rename 'my-app' to '0190myapp' <!-- id: 6 -->
-- [ ] Update documentation and resume instructions <!-- id: 7 -->
+- [x] Update documentation and resume instructions <!-- id: 7 -->
+- [ ] Implement smart project management rules <!-- id: 8 -->
