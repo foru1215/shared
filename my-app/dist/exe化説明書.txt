@@ -1,0 +1,79 @@
+## 1. フォルダの準備
+保存先の作成
+
+
+# コマンドプロンプトでフォルダに移動
+cd C:\Users\0190\my-app
+```（my-app→保存先名）
+
+## 2. プログラムファイルの作成
+
+`C:\Users\0190\my-app` フォルダ内に `transformer_system.py` ファイルを作成し、Pythonコードを保存
+
+## 3. exe化の手順
+
+### 必要なライブラリをインストール
+
+cd C:\Users\0190\my-app
+
+pip install pandas pyinstaller
+
+
+### exe化用バッチファイルの作成`C:\Users\0190\my-app` フォルダ内に `create_exe.bat` ファイルを作成して、上記の内容を保存してください。
+
+## 4. 実行手順
+
+### 手動でexe化する場合
+
+cd C:\Users\0190\my-app
+pip install pandas pyinstaller
+pyinstaller --onefile --windowed --name "トランス選定システム" transformer_system.py
+
+
+### バッチファイルを使う場合
+1. `create_exe.bat` をダブルクリック
+2. 自動的にライブラリのインストールとexe化が実行されます
+
+## 5. 実行後のフォルダ構成
+
+exe化が完了すると、以下のような構成になります：
+
+```
+C:\Users\0190\my-app\
+├── transformer_system.py          # 元のPythonファイル
+├── create_exe.bat                  # exe作成用バッチファイル
+├── build\                         # ビルド用一時フォルダ
+├── dist\                          # exe出力フォルダ
+│   └── トランス選定システム.exe    # 実行ファイル
+└── transformer_system.spec        # PyInstaller設定ファイル
+```
+
+## 6. 使用方法
+
+### 開発中の場合
+```bash
+cd C:\Users\0190\my-app
+python transformer_system.py
+```
+
+### exe化後の場合
+`C:\Users\0190\my-app\dist\トランス選定システム.exe` をダブルクリックするだけで起動します。
+
+## 7. 配布用の準備
+
+他のPCで使用する場合は、`dist` フォルダ内の `トランス選定システム.exe` をコピーするだけで動作します（PythonがインストールされていないPCでも動作）。
+
+## 8. トラブルシューティング
+
+### exe化でエラーが出る場合
+```bash
+# より詳細なログ付きでexe化
+pyinstaller --onefile --windowed --name "トランス選定システム" --log-level=DEBUG transformer_system.py
+```
+
+### exe実行時にエラーが出る場合
+```bash
+# コンソール付きでexe化（エラー確認用）
+pyinstaller --onefile --name "トランス選定システム_debug" transformer_system.py
+```
+

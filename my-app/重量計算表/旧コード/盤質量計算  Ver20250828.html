@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>板金重量計算 - 実際の材質仕様対応</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #e74c3c, #f39c12, #27ae60);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 0;
+            min-height: 800px;
+        }
+
+        .input-section {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 6px;
+            height: 40px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 3px;
+        }
+        
+        /* Auto Calculation Section Specific Styles */
+        .auto-calc-section {
+            background: linear-gradient(135deg, #e7f3ff, #e0ecff);
+            border: 2px solid #b3d9ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .auto-calc-section.inactive {
+            opacity: 0.6;
+            filter: grayscale(1);
+        }
+
+        .auto-calc-section h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #cce0ff;
+        }
+        
+        .auto-calc-inputs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .auto-calc-inputs input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #d9e6ff;
+            font-size: 1em;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .auto-calc-inputs input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .auto-calc-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .auto-calc-option {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #cce0ff;
+        }
+
+        .auto-calc-option label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            color: #34495e;
+            cursor: pointer;
+        }
+
+        .auto-calc-option input[type="checkbox"] {
+            margin-left: 5px;
+        }
+
+        .toggle-auto-calc-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-auto-calc-btn.active {
+            background: #2ecc71;
+        }
+
+        /* End Auto Calculation Section Styles */
+
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+
+        .category {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-color: #3498db;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .category-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .category-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .box { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .door { background: linear-gradient(135deg, #f39c12, #d68910); }
+        .roof { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .pillar { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .equipment { background: linear-gradient(135deg, #27ae60, #229954); }
+        .auto-calc { background: linear-gradient(135deg, #8e44ad, #9b59b6); }
+
+        .toggle-btn {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 15px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 80px 60px;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .frame-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 40px 60px;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .input-label {
+            font-weight: 500;
+            color: #34495e;
+            font-size: 0.95em;
+        }
+
+        .input-field {
+            padding: 10px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 0.9em;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .input-field:disabled {
+            background: #ecf0f1;
+            color: #95a5a6;
+        }
+
+        .unit-weight {
+            text-align: center;
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .results-panel {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .results-panel::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #3498db, #e74c3c, #f39c12, #27ae60);
+        }
+
+        .results-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .total-weight {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .total-weight .label {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .total-weight .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #f39c12;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .breakdown {
+            margin-bottom: 20px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .breakdown-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .breakdown-label {
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        .breakdown-value {
+            font-weight: bold;
+            color: #f39c12;
+            font-size: 0.9em;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .calculate-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(231, 76, 60, 0.3);
+        }
+
+        .material-selector {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .material-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.95em;
+        }
+
+        .material-selector select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            font-size: 0.9em;
+            background: rgba(255,255,255,0.9);
+            cursor: pointer;
+        }
+
+        .thickness-selector {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .thickness-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.95em;
+        }
+
+        .thickness-selector select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            font-size: 0.9em;
+            background: rgba(255,255,255,0.9);
+            cursor: pointer;
+        }
+
+        .weight-info {
+            background: rgba(255,255,255,0.08);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.15);
+            font-size: 0.85em;
+        }
+
+        .weight-info strong {
+            color: #f39c12;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.5);
+            color: #e74c3c;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        
+        /* 新しい計算詳細表示用のスタイル */
+        .calculation-details {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+
+        /* 参照サイト情報用スタイル */
+        .reference-info {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.8em;
+        }
+
+        .reference-info a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .reference-info a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-panel {
+                order: -1;
+            }
+            
+            .categories {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 板金重量計算システム</h1>
+            <p>実際の材質仕様に基づく精密計算</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <div class="section-title">
+                    📝 制御盤自動計算
+                </div>
+                <div class="auto-calc-section" id="autoCalcSection">
+                    <h2>寸法入力</h2>
+                    <div class="auto-calc-inputs">
+                        <input type="number" id="autoCalcW" placeholder="幅 W(mm)" value="">
+                        <input type="number" id="autoCalcH" placeholder="高さ H(mm)" value="">
+                        <input type="number" id="autoCalcD" placeholder="奥行 D(mm)" value="">
+                    </div>
+                    <h2>オプション選択</h2>
+                    <div class="auto-calc-options">
+                        <div class="auto-calc-option">
+                            <label><input type="checkbox" id="baseCheckbox">ベース付き</label>
+                        </div>
+                        <div class="auto-calc-option">
+                            <label><input type="checkbox" id="equipmentCheckbox">中板付き</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">
+                    📝 構造部品入力（手動）
+                    <button class="toggle-auto-calc-btn" onclick="toggleAutoCalc()">自動計算ON</button>
+                </div>
+
+                <div class="categories" id="manualInputCategories">
+                    <div class="category" data-category="box">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon box">📦</div>
+                                筐体
+                            </div>
+                        </div>
+                        
+                        <div class="input-row" id="boxFront">
+                            <div class="input-label">箱正面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                        <div class="input-row" id="boxBack">
+                            <div class="input-label">箱裏面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">箱側面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="個数" value="2" data-type="count">
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">箱天井</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="D(mm)" data-type="depth">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">箱底面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="D(mm)" data-type="depth">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                    </div>
+
+                    <div class="category" data-category="door">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon door">🚪</div>
+                                扉
+                            </div>
+                        </div>
+                        
+                        <div class="input-row" id="doorFront">
+                            <div class="input-label">扉正面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                        <div class="input-row" id="doorBack">
+                            <div class="input-label">扉裏面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                    </div>
+
+                    <div class="category" data-category="roof">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon roof">🏠</div>
+                                屋根構造
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-label">屋根正面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="个数" value="1" data-type="count">
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">屋根側面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="个数" value="2" data-type="count">
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">屋根上部</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="D(mm)" data-type="depth">
+                            <input type="number" class="input-field" placeholder="个数" value="1" data-type="count">
+                        </div>
+                    </div>
+
+                    <div class="category" data-category="frame">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon pillar">🏛️</div>
+                                フレーム材
+                            </div>
+                        </div>
+                        
+                        <div class="frame-row">
+                            <div class="input-label">角パイプ 200x150x4.5</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" step="0.1">
+                            <div class="unit-weight">31.0kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count">
+                        </div>
+                        <div class="frame-row">
+                            <div class="input-label">アングル L6x75</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" step="0.1">
+                            <div class="unit-weight">8.9kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count">
+                        </div>
+                        <div class="frame-row">
+                            <div class="input-label">チャンネル C150x75x9</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" step="0.1">
+                            <div class="unit-weight">16.8kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count">
+                        </div>
+                        <div class="frame-row">
+                            <div class="input-label">フラットバー FB12x150</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" step="0.1">
+                            <div class="unit-weight">14.1kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-panel">
+                <div class="results-title">
+                    📊 計算結果
+                </div>
+
+                <div class="material-selector">
+                    <label>材質選択</label>
+                    <select id="materialSelect" onchange="updateThicknessOptions(); calculateWeight();">
+                        <option value="steel">鋼板</option>
+                        <option value="sus">SUS (ステンレス)</option>
+                        <option value="aluminum">A5052 (アルミニウム)</option>
+                    </select>
+                </div>
+
+                <div class="thickness-selector">
+                    <label>板厚選択</label>
+                    <select id="thicknessSelect" onchange="updateWeightInfo(); calculateWeight();">
+                        </select>
+                </div>
+
+                <div class="weight-info" id="weightInfo">
+                    <strong>鋼板 t1.2:</strong> 9.42 kg/m²
+                </div>
+
+                <div class="total-weight">
+                    <div class="label">総重量</div>
+                    <div class="value" id="totalWeight">0.0 kg</div>
+                </div>
+
+                <div class="calculation-details" id="calculationDetails">
+                    </div>
+
+                <div class="breakdown" id="breakdown">
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">筐体</span>
+                        <span class="breakdown-value" id="boxWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">扉</span>
+                        <span class="breakdown-value" id="doorWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">屋根構造</span>
+                        <span class="breakdown-value" id="roofWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">フレーム材</span>
+                        <span class="breakdown-value" id="frameWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">中板</span>
+                        <span class="breakdown-value" id="equipmentWeight">0.0 kg</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn calculate-btn" onclick="calculateWeight()">計算実行</button>
+                    <button class="action-btn reset-btn" onclick="resetAll()">リセット</button>
+                </div>
+
+                <div class="weight-info">
+                    <div style="margin-bottom: 10px;"><strong>計算式:</strong></div>
+                    <div>重量 = 面積(m²) × 単位面積重量(kg/m²)</div>
+                    <div>フレーム = 長さ(m) × 単位重量(kg/m)</div>
+                </div>
+
+                <div class="reference-info">
+                    <p>計算の参考サイト：<br><a href="https://teppan-ichiba.com/lecture/weight.html" target="_blank">鉄板広場 - 比重と板厚から計算する鉄板の重量</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 材質と板厚ごとの単位面積重量データ (kg/m²)
+        const materialDensity = {
+            'steel': {
+                '1.2': 9.42, '1.6': 12.56, '2.3': 18.0, '3.2': 25.12, '4.5': 35.32, '5.0': 39.25, '6.0': 47.1
+            },
+            'sus': {
+                '1.5': 11.9, '2.0': 15.86
+            },
+            'aluminum': {
+                '1.6': 4.32, '2.3': 6.21, '3.2': 8.64, '4.5': 12.15, '6.0': 16.2
+            }
+        };
+
+        // 材質名称データ
+        const materialNames = {
+            'steel': '鋼板',
+            'sus': 'SUS (ステンレス)',
+            'aluminum': 'A5052 (アルミニウム)'
+        };
+
+        // フレーム材単位重量 (kg/m)
+        const frameWeights = {
+            'square_200x150x4.5': 31.0,
+            'angle_6x75': 8.9,
+            'channel_150x75x9': 16.8,
+            'flat_12x150': 14.1
+        };
+
+        let isAutoCalcActive = false;
+
+        function syncAutoToManualInputs() {
+            if (!isAutoCalcActive) {
+                return;
+            }
+
+            const w = parseFloat(document.getElementById('autoCalcW').value) || 0;
+            const h = parseFloat(document.getElementById('autoCalcH').value) || 0;
+            const d = parseFloat(document.getElementById('autoCalcD').value) || 0;
+
+            if (w > 0 && h > 0 && d > 0) {
+                document.querySelector('#boxFront [data-type="width"]').value = w;
+                document.querySelector('#boxFront [data-type="height"]').value = h;
+                document.querySelector('#boxBack [data-type="width"]').value = w;
+                document.querySelector('#boxBack [data-type="height"]').value = h;
+                document.querySelector('#doorFront [data-type="width"]').value = w;
+                document.querySelector('#doorFront [data-type="height"]').value = h;
+                document.querySelector('#doorBack [data-type="width"]').value = w;
+                document.querySelector('#doorBack [data-type="height"]').value = h;
+                
+                // 側面は筐体と扉でWとHが逆になるので注意
+                document.querySelector('[data-category="box"] .input-row:nth-child(4) [data-type="width"]').value = d;
+                document.querySelector('[data-category="box"] .input-row:nth-child(4) [data-type="height"]').value = h;
+
+                // 天井・底面
+                document.querySelector('[data-category="box"] .input-row:nth-child(5) [data-type="width"]').value = w;
+                document.querySelector('[data-category="box"] .input-row:nth-child(5) [data-type="depth"]').value = d;
+                document.querySelector('[data-category="box"] .input-row:nth-child(6) [data-type="width"]').value = w;
+                document.querySelector('[data-category="box"] .input-row:nth-child(6) [data-type="depth"]').value = d;
+            } else {
+                resetManualInputs();
+            }
+        }
+
+
+        function toggleAutoCalc() {
+            isAutoCalcActive = !isAutoCalcActive;
+            const toggleBtn = document.querySelector('.toggle-auto-calc-btn');
+            const autoCalcSection = document.getElementById('autoCalcSection');
+            const manualInputCategories = document.getElementById('manualInputCategories');
+
+            if (isAutoCalcActive) {
+                toggleBtn.textContent = '自動計算OFF';
+                toggleBtn.classList.add('active');
+                autoCalcSection.classList.remove('inactive');
+                manualInputCategories.style.pointerEvents = 'none';
+                manualInputCategories.style.opacity = '0.5';
+                document.querySelectorAll('#manualInputCategories .input-field').forEach(field => {
+                    field.disabled = true;
+                });
+                syncAutoToManualInputs(); // ONにした時に手動に値を反映
+            } else {
+                toggleBtn.textContent = '自動計算ON';
+                toggleBtn.classList.remove('active');
+                autoCalcSection.classList.add('inactive');
+                manualInputCategories.style.pointerEvents = 'auto';
+                manualInputCategories.style.opacity = '1';
+                document.querySelectorAll('#manualInputCategories .input-field').forEach(field => {
+                    field.disabled = false;
+                });
+                resetAutoCalcInputs();
+            }
+            calculateWeight();
+        }
+        
+        function resetManualInputs() {
+            document.querySelectorAll('#manualInputCategories .input-field').forEach(field => {
+                field.value = '';
+            });
+        }
+        
+        function resetAutoCalcInputs() {
+            document.querySelectorAll('#autoCalcSection input').forEach(field => {
+                if(field.type === 'number') field.value = '';
+                if(field.type === 'checkbox') field.checked = false;
+            });
+        }
+
+        // 板厚選択肢を動的に更新
+        function updateThicknessOptions() {
+            const material = document.getElementById('materialSelect').value;
+            const thicknessSelect = document.getElementById('thicknessSelect');
+            
+            thicknessSelect.innerHTML = '';
+            const thicknesses = Object.keys(materialDensity[material]);
+            thicknesses.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t;
+                option.textContent = t + 'mm';
+                thicknessSelect.appendChild(option);
+            });
+            updateWeightInfo();
+        }
+
+        // 重量情報更新
+        function updateWeightInfo() {
+            const material = document.getElementById('materialSelect').value;
+            const thickness = document.getElementById('thicknessSelect').value;
+            
+            if (!material || !thickness) {
+                document.getElementById('weightInfo').innerHTML = '材質と板厚を選択してください。';
+                return;
+            }
+            
+            const density = materialDensity[material][thickness];
+            
+            document.getElementById('weightInfo').innerHTML = 
+                `<strong>${materialNames[material]} t${thickness}mm:</strong> ${density} kg/m²`;
+        }
+
+        // 重量計算
+        function calculateWeight() {
+            const material = document.getElementById('materialSelect').value;
+            const thickness = document.getElementById('thicknessSelect').value;
+            
+            if (!material || !thickness) {
+                return;
+            }
+
+            const density = materialDensity[material][thickness];
+            
+            let totalWeight = 0;
+            const breakdown = { box: 0, door: 0, roof: 0, frame: 0, equipment: 0, base: 0 };
+            const calculationExpressions = [];
+
+            if (isAutoCalcActive) {
+                const w = parseFloat(document.getElementById('autoCalcW').value) || 0;
+                const h = parseFloat(document.getElementById('autoCalcH').value) || 0;
+                const d = parseFloat(document.getElementById('autoCalcD').value) || 0;
+
+                if (w > 0 && h > 0 && d > 0) {
+                    // Box calculation (4 sides + top/bottom)
+                    const boxFrontBackArea = (w * h) / 1000000;
+                    const boxSideArea = (d * h) / 1000000;
+                    const boxTopBottomArea = (w * d) / 1000000;
+                    
+                    const boxFrontBackWeight = boxFrontBackArea * density * 2;
+                    const boxSideWeight = boxSideArea * density * 2;
+                    const boxTopBottomWeight = boxTopBottomArea * density * 2;
+                    breakdown.box = boxFrontBackWeight + boxSideWeight + boxTopBottomWeight;
+
+                    const equipmentCheckbox = document.getElementById('equipmentCheckbox');
+                    if(equipmentCheckbox.checked) {
+                        const equipmentArea = (w * h) / 1000000;
+                        breakdown.equipment = equipmentArea * density;
+                        calculationExpressions.push(`中板：(${w} x ${h}) / 1000000 x ${density} = ${breakdown.equipment.toFixed(1)}kg`);
+                    } else {
+                        breakdown.equipment = 0;
+                    }
+
+                    calculationExpressions.push(`筐体正面/背面：(${w} x ${h}) / 1000000 x ${density} x 2 = ${boxFrontBackWeight.toFixed(1)}kg`);
+                    calculationExpressions.push(`筐体側面：(${d} x ${h}) / 1000000 x ${density} x 2 = ${boxSideWeight.toFixed(1)}kg`);
+                    calculationExpressions.push(`筐体天井/底面：(${w} x ${d}) / 1000000 x ${density} x 2 = ${boxTopBottomWeight.toFixed(1)}kg`);
+
+
+                    const baseCheckbox = document.getElementById('baseCheckbox');
+                    if(baseCheckbox.checked) {
+                        const baseWeight = (w * d / 1000000) * density * 1.5; // approx. 50% heavier for structure
+                        breakdown.base = baseWeight;
+                        calculationExpressions.push(`ベース板：(${w} x ${d}) / 1000000 x ${density} x 1.5 = ${baseWeight.toFixed(1)}kg`);
+                    }
+
+                    // For breakdown display, we treat auto-calc as box, door, roof, etc.
+                    // This is a simplified split for display purposes
+                    breakdown.door = breakdown.box * 0.2; 
+                    
+                    totalWeight = breakdown.box + breakdown.base + breakdown.equipment;
+                }
+            } else {
+                // Manual calculation logic
+                const categories = ['box', 'door', 'roof', 'frame'];
+                
+                // Check if door dimensions are present
+                const doorFrontW = parseFloat(document.querySelector('#doorFront [data-type="width"]')?.value) || 0;
+                const doorFrontH = parseFloat(document.querySelector('#doorFront [data-type="height"]')?.value) || 0;
+                const doorBackW = parseFloat(document.querySelector('#doorBack [data-type="width"]')?.value) || 0;
+                const doorBackH = parseFloat(document.querySelector('#doorBack [data-type="height"]')?.value) || 0;
+
+                categories.forEach(categoryName => {
+                    const category = document.querySelector(`[data-category="${categoryName}"]`);
+                    if (category) {
+                        const rows = category.querySelectorAll('.input-row, .frame-row');
+                        rows.forEach(row => {
+                            // Skip box front/back if door dimensions are entered
+                            if (row.id === 'boxFront' && doorFrontW > 0 && doorFrontH > 0) {
+                                return;
+                            }
+                            if (row.id === 'boxBack' && doorBackW > 0 && doorBackH > 0) {
+                                return;
+                            }
+                            
+                            const w = parseFloat(row.querySelector('[data-type="width"]')?.value || 0);
+                            const h = parseFloat(row.querySelector('[data-type="height"]')?.value || 0);
+                            const d = parseFloat(row.querySelector('[data-type="depth"]')?.value || 0);
+                            const length = parseFloat(row.querySelector('[data-type="length"]')?.value || 0);
+                            const count = parseFloat(row.querySelector('[data-type="count"]')?.value || 1);
+                            
+                            if (categoryName === 'frame') {
+                                const unitWeight = parseFloat(row.querySelector('.unit-weight').textContent.replace('kg/m', '')) || 0;
+                                const weight = length * unitWeight * count;
+                                breakdown.frame += weight;
+                                const label = row.querySelector('.input-label').textContent;
+                                calculationExpressions.push(`${label}：${length}m x ${unitWeight}kg/m x ${count} = ${weight.toFixed(1)}kg`);
+                            } else {
+                                let area = 0;
+                                if (w && h) area = (w * h) / 1000000;
+                                if (w && d) area = (w * d) / 1000000;
+                                const weight = area * density * count;
+                                breakdown[categoryName] += weight;
+                                const label = row.querySelector('.input-label').textContent;
+                                calculationExpressions.push(`${label}：(${w || 0} x ${h || d}) / 1000000 x ${density} x ${count} = ${weight.toFixed(1)}kg`);
+                            }
+                        });
+                    }
+                });
+
+                // Calculate equipment weight from box front dimensions in manual mode
+                const wManual = parseFloat(document.querySelector('#boxFront [data-type="width"]')?.value || 0);
+                const hManual = parseFloat(document.querySelector('#boxFront [data-type="height"]')?.value || 0);
+                if (wManual > 0 && hManual > 0) {
+                    const equipmentArea = (wManual * hManual) / 1000000;
+                    breakdown.equipment = equipmentArea * density;
+                    calculationExpressions.push(`中板：(${wManual} x ${hManual}) / 1000000 x ${density} = ${breakdown.equipment.toFixed(1)}kg`);
+                }
+
+                totalWeight = breakdown.box + breakdown.door + breakdown.roof + 
+                             breakdown.frame + breakdown.equipment;
+            }
+
+            // Results display
+            document.getElementById('totalWeight').textContent = totalWeight.toFixed(1) + ' kg';
+            document.getElementById('boxWeight').textContent = breakdown.box.toFixed(1) + ' kg';
+            document.getElementById('doorWeight').textContent = breakdown.door.toFixed(1) + ' kg';
+            document.getElementById('roofWeight').textContent = breakdown.roof.toFixed(1) + ' kg';
+            document.getElementById('frameWeight').textContent = breakdown.frame.toFixed(1) + ' kg';
+            document.getElementById('equipmentWeight').textContent = breakdown.equipment.toFixed(1) + ' kg';
+            
+            // Show details
+            if (calculationExpressions.length > 0) {
+                document.getElementById('calculationDetails').innerHTML = '<strong>計算詳細:</strong><br>' + calculationExpressions.join('<br>');
+            } else {
+                document.getElementById('calculationDetails').innerHTML = '';
+            }
+        }
+
+        // リセット
+        function resetAll() {
+            resetAutoCalcInputs();
+            resetManualInputs();
+            document.getElementById('totalWeight').textContent = '0.0 kg';
+            document.getElementById('boxWeight').textContent = '0.0 kg';
+            document.getElementById('doorWeight').textContent = '0.0 kg';
+            document.getElementById('roofWeight').textContent = '0.0 kg';
+            document.getElementById('frameWeight').textContent = '0.0 kg';
+            document.getElementById('equipmentWeight').textContent = '0.0 kg';
+            document.getElementById('calculationDetails').innerHTML = '';
+            
+            // Set auto calc to default active
+            if (!isAutoCalcActive) {
+                toggleAutoCalc();
+            }
+
+            updateThicknessOptions();
+            updateWeightInfo();
+            calculateWeight();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateThicknessOptions();
+            
+            // 自動計算入力欄へのイベントリスナーを追加
+            document.querySelectorAll('#autoCalcSection input').forEach(field => {
+                field.addEventListener('input', () => {
+                    syncAutoToManualInputs();
+                    calculateWeight();
+                });
+            });
+
+            // 手動入力欄にイベントリスナーを追加
+            const inputFields = document.querySelectorAll('#manualInputCategories .input-field');
+            inputFields.forEach(field => {
+                field.addEventListener('input', () => {
+                    // 扉と筐体の重複入力防止
+                    if (field.closest('#doorFront')) {
+                        document.querySelector('#boxFront [data-type="width"]').value = '';
+                        document.querySelector('#boxFront [data-type="height"]').value = '';
+                    } else if (field.closest('#doorBack')) {
+                        document.querySelector('#boxBack [data-type="width"]').value = '';
+                        document.querySelector('#boxBack [data-type="height"]').value = '';
+                    } else if (field.closest('#boxFront') && (field.value.length > 0)) {
+                        document.querySelector('#doorFront [data-type="width"]').value = '';
+                        document.querySelector('#doorFront [data-type="height"]').value = '';
+                    } else if (field.closest('#boxBack') && (field.value.length > 0)) {
+                        document.querySelector('#doorBack [data-type="width"]').value = '';
+                        document.querySelector('#doorBack [data-type="height"]').value = '';
+                    }
+                    calculateWeight();
+                });
+            });
+
+            // セレクトボックス変更時の自動計算
+            document.getElementById('materialSelect').addEventListener('change', calculateWeight);
+            document.getElementById('thicknessSelect').addEventListener('change', calculateWeight);
+            
+            toggleAutoCalc(); // Start with auto-calc mode active
+        });
+    </script>
+</body>
+</html>

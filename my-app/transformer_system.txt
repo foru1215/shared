@@ -1,0 +1,547 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, scrolledtext, filedialog
+import pandas as pd
+import os
+from typing import Dict, List, Any
+from io import StringIO # StringIOをインポート
+
+class TransformerSelectionSystem:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("トランス選定システム")
+        self.root.geometry("1600x900")
+        # データ格納用
+        self.df = pd.DataFrame()
+        self.filtered_df = pd.DataFrame()
+        self.option_df = pd.DataFrame()
+        # データファイルパス
+        self.data_file = "transformer_data.csv"
+        # 列名定義
+        self.columns = [
+            "大区分", "品名", "相数", "容量", "1次", "2次", "結線", "CP",
+            "コード", "型式", "定価", "貴社仕切"
+        ]
+        # フィルター対象列
+        self.filter_columns = ["大区分", "品名", "相数", "容量", "1次", "2次", "結線", "CP"]
+        # オプション選択状態
+        self.option_vars = {
+            "油入変圧器用": tk.BooleanVar(),
+            "ﾓｰﾙﾄﾞﾄﾗﾝｽ用": tk.BooleanVar()
+        }
+        self.setup_ui()
+        self.load_data()
+
+    def setup_ui(self):
+        # メインフレーム
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # フィルターエリア
+        self.setup_filter_area(main_frame)
+        # オプションエリア
+        self.setup_option_area(main_frame)
+        # 結果表示エリア
+        self.setup_result_area(main_frame)
+        # データ編集エリア（最下部に移動）
+        self.setup_data_edit_area(main_frame)
+
+    def setup_data_edit_area(self, parent):
+        # データ編集フレーム（最下部に配置）
+        data_frame = ttk.LabelFrame(parent, text="データ編集", padding=10)
+        data_frame.pack(fill=tk.BOTH, expand=False, pady=(10, 0))
+        # ボタンフレーム
+        button_frame = ttk.Frame(data_frame)
+        button_frame.pack(fill=tk.X, pady=(0, 10))
+        ttk.Button(button_frame, text="CSVファイル読込", command=self.load_csv_file).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="CSVファイル保存", command=self.save_csv_file).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="データクリア", command=self.clear_data).pack(side=tk.LEFT, padx=(0, 5))
+        # サンプルデータボタンを削除
+        # ttk.Button(button_frame, text="サンプルデータ", command=self.load_sample_data).pack(side=tk.LEFT)
+        # データ入力エリア
+        ttk.Label(data_frame, text="データ（CSV形式で入力してください）:").pack(anchor=tk.W)
+        self.data_text = scrolledtext.ScrolledText(data_frame, height=6, width=120)
+        self.data_text.pack(fill=tk.BOTH, expand=False, pady=5)
+        # データ更新ボタン
+        ttk.Button(data_frame, text="データ更新", command=self.update_data).pack(pady=5)
+
+    def setup_filter_area(self, parent):
+        # フィルターフレーム
+        filter_frame = ttk.LabelFrame(parent, text="フィルター", padding=10)
+        filter_frame.pack(fill=tk.X, pady=(0, 10))
+        # フィルター用辞書
+        self.filter_vars = {}
+        self.filter_combos = {}
+        # 2行4列のグリッドレイアウト
+        for i, col in enumerate(self.filter_columns):
+            row = i // 4
+            column = i % 4
+            # ラベル
+            ttk.Label(filter_frame, text=f"{col}:").grid(row=row*2, column=column, sticky=tk.W, padx=5, pady=2)
+            # コンボボックス
+            self.filter_vars[col] = tk.StringVar()
+            combo = ttk.Combobox(filter_frame, textvariable=self.filter_vars[col], state="readonly", width=15)
+            combo.grid(row=row*2+1, column=column, padx=5, pady=2)
+            # 各フィルターに専用のイベントハンドラーを設定
+            def create_filter_handler(filter_col):
+                def handler(event):
+                    self.on_filter_changed(filter_col)
+                return handler
+            combo.bind("<<ComboboxSelected>>", create_filter_handler(col))
+            self.filter_combos[col] = combo
+        # フィルタークリアボタン
+        ttk.Button(filter_frame, text="フィルタークリア", command=self.clear_filters).grid(row=4, column=0, columnspan=4, pady=10)
+
+    def setup_option_area(self, parent):
+        # オプションフレーム
+        option_frame = ttk.LabelFrame(parent, text="オプション選択", padding=10)
+        option_frame.pack(fill=tk.X, pady=(0, 10))
+        # オプションチェックボックス
+        option_cb_frame = ttk.Frame(option_frame)
+        option_cb_frame.pack(fill=tk.X, pady=5)
+        for i, (option_type, var) in enumerate(self.option_vars.items()):
+            cb = ttk.Checkbutton(
+                option_cb_frame,
+                text=f"ｵﾌﾟｼｮﾝ({option_type})",
+                variable=var,
+                command=self.on_option_changed
+            )
+            cb.pack(side=tk.LEFT, padx=20)
+        # オプション金額表示
+        self.option_price_frame = ttk.Frame(option_frame)
+        self.option_price_frame.pack(fill=tk.X, pady=5)
+        self.option_price_labels = {}
+        for option_type in self.option_vars.keys():
+            label = ttk.Label(self.option_price_frame, text="", foreground="blue")
+            label.pack(side=tk.LEFT, padx=20)
+            self.option_price_labels[option_type] = label
+
+    def setup_result_area(self, parent):
+        # 結果表示フレーム
+        result_frame = ttk.LabelFrame(parent, text="検索結果", padding=10)
+        result_frame.pack(fill=tk.BOTH, expand=True)
+        # 結果件数ラベル
+        self.result_count_label = ttk.Label(result_frame, text="件数: 0件")
+        self.result_count_label.pack(anchor=tk.W, pady=(0, 5))
+        # Treeviewの設定
+        tree_frame = ttk.Frame(result_frame)
+        tree_frame.pack(fill=tk.BOTH, expand=True)
+        # スクロールバー
+        v_scroll = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL)
+        h_scroll = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL)
+        # Treeview
+        self.tree = ttk.Treeview(tree_frame, columns=self.columns, show="headings",
+                                yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
+        # スクロールバーの配置
+        v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        # スクロールバーの設定
+        v_scroll.config(command=self.tree.yview)
+        h_scroll.config(command=self.tree.xview)
+        # 列の設定
+        for col in self.columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=100, minwidth=80)
+        # 合計金額表示エリア
+        total_frame = ttk.LabelFrame(result_frame, text="合計金額", padding=10)
+        total_frame.pack(fill=tk.X, pady=(10, 0))
+        self.total_labels_frame = ttk.Frame(total_frame)
+        self.total_labels_frame.pack(fill=tk.X)
+        # 合計金額ラベル（動的に作成）
+        self.total_labels = {}
+
+    # load_sample_dataメソッドを削除
+    # def load_sample_data(self):
+    #     """サンプルデータを読み込み"""
+    #     sample_data = """..."""
+    #     self.data_text.delete(1.0, tk.END)
+    #     self.data_text.insert(1.0, sample_data)
+    #     self.update_data()
+
+    def load_csv_file(self):
+        """CSVファイルを読み込み"""
+        file_path = filedialog.askopenfilename(
+            title="CSVファイルを選択",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.data_text.delete(1.0, tk.END)
+                self.data_text.insert(1.0, content)
+                self.update_data()
+                messagebox.showinfo("成功", "CSVファイルを読み込みました。")
+            except Exception as e:
+                messagebox.showerror("エラー", f"ファイル読み込みエラー: {str(e)}")
+
+    def save_csv_file(self):
+        """CSVファイルに保存"""
+        if self.df.empty:
+            messagebox.showwarning("警告", "保存するデータがありません。")
+            return
+        file_path = filedialog.asksaveasfilename(
+            title="CSVファイルを保存",
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        if file_path:
+            try:
+                self.df.to_csv(file_path, index=False, encoding='utf-8')
+                messagebox.showinfo("成功", "CSVファイルに保存しました。")
+            except Exception as e:
+                messagebox.showerror("エラー", f"ファイル保存エラー: {str(e)}")
+
+    def clear_data(self):
+        """データをクリア"""
+        result = messagebox.askyesno("確認", "すべてのデータをクリアしますか？")
+        if result:
+            self.data_text.delete(1.0, tk.END)
+            self.df = pd.DataFrame()
+            self.filtered_df = pd.DataFrame()
+            self.option_df = pd.DataFrame()
+            self.update_tree_view()
+            self.update_filter_options()
+            self.update_option_prices()
+
+    def update_data(self):
+        """テキストエリアからデータを更新"""
+        try:
+            csv_data = self.data_text.get(1.0, tk.END).strip()
+            if not csv_data:
+                self.df = pd.DataFrame()
+                self.filtered_df = pd.DataFrame()
+                self.option_df = pd.DataFrame()
+            else:
+                # CSV文字列をDataFrameに変換
+                # from io import StringIO # すでにインポート済み
+                temp_df = pd.read_csv(StringIO(csv_data))
+                # 列名をチェック
+                if list(temp_df.columns) != self.columns:
+                    missing_cols = set(self.columns) - set(temp_df.columns)
+                    extra_cols = set(temp_df.columns) - set(self.columns)
+                    msg = "列名が正しくありません。\n"
+                    if missing_cols:
+                        msg += f"不足している列: {', '.join(missing_cols)}\n"
+                    if extra_cols:
+                        msg += f"余分な列: {', '.join(extra_cols)}\n"
+                    msg += f"必要な列: {', '.join(self.columns)}"
+                    messagebox.showerror("エラー", msg)
+                    return
+                # オプションデータとメインデータを分離
+                self.option_df = temp_df[temp_df['大区分'].str.contains('ｵﾌﾟｼｮﾝ', na=False)].copy()
+                self.df = temp_df[~temp_df['大区分'].str.contains('ｵﾌﾟｼｮﾝ', na=False)].copy()
+                self.filtered_df = self.df.copy()
+            self.update_filter_options()
+            self.update_tree_view()
+            self.save_data()
+            messagebox.showinfo("成功", f"データを更新しました。（メイン: {len(self.df)}件、オプション: {len(self.option_df)}件）")
+        except Exception as e:
+            messagebox.showerror("エラー", f"データ更新エラー: {str(e)}")
+
+    def update_filter_options(self, changed_filter=None):
+        """フィルターオプションを更新（全フィルタ連動対応）"""
+        if self.df.empty:
+            for col in self.filter_columns:
+                self.filter_combos[col]['values'] = [""]
+                self.filter_vars[col].set("")
+            return
+        # 現在のフィルター状態を取得
+        current_filters = {}
+        for col in self.filter_columns:
+            value = self.filter_vars[col].get()
+            if value and value != "":
+                current_filters[col] = value
+
+        # 各フィルターの選択肢を更新
+        for col in self.filter_columns:
+            # このフィルター以外の条件でデータを絞り込み
+            temp_df = self.df.copy()
+            # 他のすべてのフィルター条件を適用（ただし、品名フィルターでは大区分がオプションの場合のみ適用）
+            temp_filters_to_apply = current_filters.copy()
+            # 品名フィルターの特殊処理: 大区分が「オプション」でない場合、大区分フィルターを除外
+            if col == "品名":
+                major_category = current_filters.get("大区分", "")
+                if not major_category.startswith("ｵﾌﾟｼｮﾝ"):
+                    if "大区分" in temp_filters_to_apply:
+                        del temp_filters_to_apply["大区分"]
+
+            for filter_col, filter_value in temp_filters_to_apply.items():
+                if filter_col != col:  # 自分自身のフィルターは除く
+                    temp_df = temp_df[temp_df[filter_col].astype(str) == filter_value]
+
+            # 絞り込まれたデータから選択肢を作成
+            if col in temp_df.columns and not temp_df.empty:
+                unique_values = [""] + sorted(temp_df[col].astype(str).unique().tolist())
+                self.filter_combos[col]['values'] = unique_values
+                # 現在の値が選択肢にない場合はクリア
+                current_value = self.filter_vars[col].get()
+                if current_value and current_value not in unique_values:
+                    self.filter_vars[col].set("")
+            else:
+                self.filter_combos[col]['values'] = [""]
+                if col not in current_filters:  # 現在選択されていない場合のみクリア
+                    self.filter_vars[col].set("")
+
+        # 大区分の選択で品名が絞り込まれるようにする（オプションのみ）
+        if changed_filter == "大区分":
+            major_category = current_filters.get("大区分", "")
+            if major_category.startswith("ｵﾌﾟｼｮﾝ"):
+                self.filter_combos["品名"].event_generate("<<ComboboxSelected>>")
+
+    def on_filter_changed(self, changed_filter):
+        """特定のフィルターが変更された時の処理"""
+        if self.df.empty:
+            return
+        # 他のフィルターオプションを更新（連動させるため）
+        self.update_filter_options(changed_filter)
+        # フィルターを適用して結果を更新
+        self.apply_filters()
+
+    def on_option_changed(self):
+        """オプションチェックボックスが変更された時の処理"""
+        self.update_option_prices()
+        self.update_tree_view()
+
+    def apply_filters(self, event=None):
+        """フィルターを適用"""
+        if self.df.empty:
+            return
+        # フィルターを適用
+        filtered = self.df.copy()
+        for col in self.filter_columns:
+            filter_value = self.filter_vars[col].get()
+            if filter_value and filter_value != "":
+                filtered = filtered[filtered[col].astype(str) == filter_value]
+        self.filtered_df = filtered
+        self.update_tree_view()
+
+    def clear_filters(self):
+        """フィルターをクリア"""
+        for col in self.filter_columns:
+            self.filter_vars[col].set("")
+        self.filtered_df = self.df.copy()
+        self.update_filter_options()  # フィルタークリア後にオプションを更新
+        self.update_tree_view()
+
+    def get_matching_options(self, main_row):
+        """メイントランスに対応するオプションを取得 (相数と容量のみで絞り込み)"""
+        if self.option_df.empty:
+            return pd.DataFrame()
+        # 大区分の対応関係
+        option_mapping = {
+            "油入変圧器": "ｵﾌﾟｼｮﾝ(油入変圧器用)",
+            "ﾓｰﾙﾄﾞﾄﾗﾝｽ": "ｵﾌﾟｼｮﾝ(ﾓｰﾙﾄﾞﾄﾗﾝｽ用)"
+        }
+        main_category = main_row['大区分']
+        if main_category not in option_mapping:
+            return pd.DataFrame()
+        option_category = option_mapping[main_category]
+        # 対応するオプションを検索（相数と容量のみが一致するもの）
+        matching_options = self.option_df[
+            (self.option_df['大区分'] == option_category) &
+            (self.option_df['相数'].astype(str) == str(main_row['相数'])) &
+            (self.option_df['容量'].astype(str) == str(main_row['容量']))
+        ].copy()
+        return matching_options
+
+    def update_option_prices(self):
+        """選択されたオプションの価格を更新表示 (選択された機器に一致するオプションのみ)"""
+        for option_type, label in self.option_price_labels.items():
+            if self.option_vars[option_type].get():
+                # 現在フィルターされているメイン機器に対応するオプションの価格を計算
+                total_option_price = 0
+                total_option_discount = 0
+                for _, main_row in self.filtered_df.iterrows():
+                    matching_options = self.get_matching_options(main_row)
+                    if not matching_options.empty:
+                        for _, option_row in matching_options.iterrows():
+                            try:
+                                price_str = str(option_row['定価']).replace('¥', '').replace(',', '')
+                                discount_str = str(option_row['貴社仕切']).replace('¥', '').replace(',', '')
+                                total_option_price += int(price_str)
+                                total_option_discount += int(discount_str)
+                            except (ValueError, TypeError):
+                                continue
+                if total_option_price > 0:
+                    label.config(text=f"定価: ¥{total_option_price:,} / 貴社仕切: ¥{total_option_discount:,}")
+                else:
+                    label.config(text="該当オプションなし")
+            else:
+                label.config(text="")
+
+    def calculate_totals(self):
+        """合計金額を計算 (選択された機器とその一致するオプションのみ)"""
+        totals = {}
+        if not self.filtered_df.empty:
+            for _, main_row in self.filtered_df.iterrows():
+                key = f"{main_row['型式']}"
+                # メイン機器の価格
+                try:
+                    main_price = int(str(main_row['定価']).replace('¥', '').replace(',', ''))
+                    main_discount = int(str(main_row['貴社仕切']).replace('¥', '').replace(',', ''))
+                except (ValueError, TypeError):
+                    main_price = 0
+                    main_discount = 0
+                # オプション価格 (選択された機器に一致するオプションのみ)
+                option_price = 0
+                option_discount = 0
+                # 対応するオプションカテゴリーを取得
+                option_mapping = {
+                    "油入変圧器": "油入変圧器用",
+                    "ﾓｰﾙﾄﾞﾄﾗﾝｽ": "ﾓｰﾙﾄﾞﾄﾗﾝｽ用"
+                }
+                main_category = main_row['大区分']
+                if main_category in option_mapping:
+                    option_type = option_mapping[main_category]
+                    if self.option_vars[option_type].get():
+                        matching_options = self.get_matching_options(main_row)
+                        for _, option_row in matching_options.iterrows():
+                            try:
+                                price_str = str(option_row['定価']).replace('¥', '').replace(',', '')
+                                discount_str = str(option_row['貴社仕切']).replace('¥', '').replace(',', '')
+                                option_price += int(price_str)
+                                option_discount += int(discount_str)
+                            except (ValueError, TypeError):
+                                continue
+
+                totals[key] = {
+                    'main_price': main_price,
+                    'main_discount': main_discount,
+                    'option_price': option_price,
+                    'option_discount': option_discount,
+                    'total_price': main_price + option_price,
+                    'total_discount': main_discount + option_discount
+                }
+        return totals
+
+    def update_total_display(self):
+        """合計金額表示を更新"""
+        # 既存のラベルをクリア
+        for widget in self.total_labels_frame.winfo_children():
+            widget.destroy()
+        self.total_labels = {}
+        totals = self.calculate_totals()
+        if totals:
+            # ヘッダー
+            header_frame = ttk.Frame(self.total_labels_frame)
+            header_frame.pack(fill=tk.X, pady=(0, 10))
+            ttk.Label(header_frame, text="【合計金額詳細】", font=("", 12, "bold")).pack(anchor=tk.W)
+            # 各機器の合計
+            for key, total_data in totals.items():
+                item_frame = ttk.Frame(self.total_labels_frame)
+                item_frame.pack(fill=tk.X, pady=2)
+                # 機器名
+                ttk.Label(item_frame, text=f"■ {key}", font=("", 10, "bold")).pack(anchor=tk.W)
+                detail_frame = ttk.Frame(item_frame)
+                detail_frame.pack(fill=tk.X, padx=20)
+                # メイン機器
+                main_frame = ttk.Frame(detail_frame)
+                main_frame.pack(fill=tk.X)
+                ttk.Label(main_frame, text="メイン機器:", width=12).pack(side=tk.LEFT)
+                ttk.Label(main_frame, text=f"定価 ¥{total_data['main_price']:,}").pack(side=tk.LEFT, padx=(0, 20))
+                ttk.Label(main_frame, text=f"貴社仕切 ¥{total_data['main_discount']:,}").pack(side=tk.LEFT)
+                # オプション（選択されている場合のみ）
+                if total_data['option_price'] > 0:
+                    option_frame = ttk.Frame(detail_frame)
+                    option_frame.pack(fill=tk.X)
+                    ttk.Label(option_frame, text="オプション:", width=12).pack(side=tk.LEFT)
+                    ttk.Label(option_frame, text=f"定価 ¥{total_data['option_price']:,}").pack(side=tk.LEFT, padx=(0, 20))
+                    ttk.Label(option_frame, text=f"貴社仕切 ¥{total_data['option_discount']:,}").pack(side=tk.LEFT)
+                # 合計
+                total_frame = ttk.Frame(detail_frame)
+                total_frame.pack(fill=tk.X)
+                ttk.Label(total_frame, text="合計:", width=12, font=("", 9, "bold")).pack(side=tk.LEFT)
+                ttk.Label(total_frame, text=f"定価 ¥{total_data['total_price']:,}",
+                         font=("", 9, "bold"), foreground="red").pack(side=tk.LEFT, padx=(0, 20))
+                ttk.Label(total_frame, text=f"貴社仕切 ¥{total_data['total_discount']:,}",
+                         font=("", 9, "bold"), foreground="blue").pack(side=tk.LEFT)
+                # 区切り線
+                ttk.Separator(item_frame, orient='horizontal').pack(fill=tk.X, pady=5)
+            # 総合計
+            if len(totals) > 1:
+                grand_total_frame = ttk.Frame(self.total_labels_frame)
+                grand_total_frame.pack(fill=tk.X, pady=(10, 0))
+                grand_total_price = sum(data['total_price'] for data in totals.values())
+                grand_total_discount = sum(data['total_discount'] for data in totals.values())
+                ttk.Label(grand_total_frame, text="【総合計】", font=("", 12, "bold")).pack(anchor=tk.W)
+                grand_detail_frame = ttk.Frame(grand_total_frame)
+                grand_detail_frame.pack(fill=tk.X, padx=20)
+                ttk.Label(grand_detail_frame, text=f"総定価: ¥{grand_total_price:,}",
+                         font=("", 11, "bold"), foreground="red").pack(side=tk.LEFT, padx=(0, 30))
+                ttk.Label(grand_detail_frame, text=f"総貴社仕切: ¥{grand_total_discount:,}",
+                         font=("", 11, "bold"), foreground="blue").pack(side=tk.LEFT)
+        else:
+            ttk.Label(self.total_labels_frame, text="選択された機器がありません",
+                     foreground="gray").pack(anchor=tk.W)
+
+    def update_tree_view(self):
+        """Treeviewを更新"""
+        # 既存のアイテムを削除
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        # メイン機器データを追加
+        if not self.filtered_df.empty:
+            for _, row in self.filtered_df.iterrows():
+                values = [str(row[col]) for col in self.columns]
+                item_id = self.tree.insert("", tk.END, values=values, tags=("main",))
+                # 対応するオプションを表示 (選択された機器に一致するオプションのみ)
+                matching_options = self.get_matching_options(row)
+                if not matching_options.empty:
+                    # オプションカテゴリーを取得
+                    option_mapping = {
+                        "油入変圧器": "油入変圧器用",
+                        "ﾓｰﾙﾄﾞﾄﾗﾝｽ": "ﾓｰﾙﾄﾞﾄﾗﾝｽ用"
+                    }
+                    main_category = row['大区分']
+                    if main_category in option_mapping:
+                        option_type = option_mapping[main_category]
+                        if self.option_vars[option_type].get():
+                            for _, option_row in matching_options.iterrows():
+                                option_values = [str(option_row[col]) for col in self.columns]
+                                self.tree.insert("", tk.END, values=option_values, tags=("option",))
+        # タグの設定
+        self.tree.tag_configure("main", background="white")
+        self.tree.tag_configure("option", background="#e6f3ff", foreground="blue")
+        # 件数を更新
+        count = len(self.filtered_df) if not self.filtered_df.empty else 0
+        self.result_count_label.config(text=f"件数: {count}件")
+        # オプション価格表示を更新
+        self.update_option_prices()
+        # 合計金額表示を更新
+        self.update_total_display()
+
+    def load_data(self):
+        """保存されたデータを読み込み"""
+        if os.path.exists(self.data_file):
+            try:
+                temp_df = pd.read_csv(self.data_file, encoding='utf-8')
+                # オプションデータとメインデータを分離
+                self.option_df = temp_df[temp_df['大区分'].str.contains('ｵﾌﾟｼｮﾝ', na=False)].copy()
+                self.df = temp_df[~temp_df['大区分'].str.contains('ｵﾌﾟｼｮﾝ', na=False)].copy()
+                self.filtered_df = self.df.copy()
+                # テキストエリアにデータを表示
+                csv_string = temp_df.to_csv(index=False, encoding='utf-8')
+                self.data_text.delete(1.0, tk.END)
+                self.data_text.insert(1.0, csv_string)
+                self.update_filter_options()
+                self.update_tree_view()
+            except Exception as e:
+                print(f"データ読み込みエラー: {str(e)}")
+
+    def save_data(self):
+        """データを保存"""
+        if not self.df.empty or not self.option_df.empty:
+            try:
+                # メインデータとオプションデータを結合して保存
+                combined_df = pd.concat([self.df, self.option_df], ignore_index=True)
+                combined_df.to_csv(self.data_file, index=False, encoding='utf-8')
+            except Exception as e:
+                print(f"データ保存エラー: {str(e)}")
+
+def main():
+    root = tk.Tk()
+    app = TransformerSelectionSystem(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()

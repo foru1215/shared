@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>板金重量計算 - 実際の材質仕様対応</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #e74c3c, #f39c12, #27ae60);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 0;
+            min-height: 800px;
+        }
+
+        .input-section {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 6px;
+            height: 40px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 3px;
+        }
+
+        .auto-calc-section {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+        }
+
+        .auto-calc-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auto-calc-inputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr) auto;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 15px;
+        }
+
+        .auto-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .auto-input-group label {
+            font-size: 0.9em;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .auto-input {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            text-align: center;
+            background: rgba(255,255,255,0.9);
+            transition: all 0.3s ease;
+        }
+
+        .auto-input:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+        }
+
+        .auto-calc-btn {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auto-calc-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .panel-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .option-group {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .option-group label {
+            display: block;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .option-group select,
+        .option-group input[type="checkbox"] {
+            width: 100%;
+            padding: 5px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.9);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+
+        .category {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-color: #3498db;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .category-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .category-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .box { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .door { background: linear-gradient(135deg, #f39c12, #d68910); }
+        .roof { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .pillar { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .equipment { background: linear-gradient(135deg, #27ae60, #229954); }
+
+        .toggle-btn {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 15px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 80px 60px;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .input-row.active {
+            opacity: 1;
+        }
+
+        .frame-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 40px 60px;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .frame-row.active {
+            opacity: 1;
+        }
+
+        .input-label {
+            font-weight: 500;
+            color: #34495e;
+            font-size: 0.95em;
+        }
+
+        .input-field {
+            padding: 10px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 0.9em;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .input-field:disabled {
+            background: #ecf0f1;
+            color: #95a5a6;
+        }
+
+        .unit-weight {
+            text-align: center;
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .quick-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #ecf0f1, #bdc3c7);
+            color: #2c3e50;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+        }
+
+        .quick-btn:hover {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .results-panel {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .results-panel::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #3498db, #e74c3c, #f39c12, #27ae60);
+        }
+
+        .results-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .total-weight {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .total-weight .label {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .total-weight .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #f39c12;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .breakdown {
+            margin-bottom: 20px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .breakdown-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .breakdown-label {
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        .breakdown-value {
+            font-weight: bold;
+            color: #f39c12;
+            font-size: 0.9em;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .calculate-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(231, 76, 60, 0.3);
+        }
+
+        .material-selector {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .material-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.95em;
+        }
+
+        .material-selector select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            font-size: 0.9em;
+            background: rgba(255,255,255,0.9);
+            cursor: pointer;
+        }
+
+        .thickness-selector {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .thickness-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.95em;
+        }
+
+        .thickness-selector select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            font-size: 0.9em;
+            background: rgba(255,255,255,0.9);
+            cursor: pointer;
+        }
+
+        .weight-info {
+            background: rgba(255,255,255,0.08);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.15);
+            font-size: 0.85em;
+        }
+
+        .weight-info strong {
+            color: #f39c12;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.5);
+            color: #e74c3c;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-panel {
+                order: -1;
+            }
+            
+            .categories {
+                grid-template-columns: 1fr;
+            }
+            
+            .auto-calc-inputs {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .panel-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 板金重量計算システム</h1>
+            <p>実際の材質仕様に基づく精密計算</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <!-- 制御盤自動計算セクション -->
+                <div class="auto-calc-section">
+                    <div class="auto-calc-title">
+                        ⚡ 制御盤自動計算
+                    </div>
+                    <div class="auto-calc-inputs">
+                        <div class="auto-input-group">
+                            <label>幅 (W)</label>
+                            <input type="number" class="auto-input" id="panelWidth" placeholder="mm">
+                        </div>
+                        <div class="auto-input-group">
+                            <label>高さ (H)</label>
+                            <input type="number" class="auto-input" id="panelHeight" placeholder="mm">
+                        </div>
+                        <div class="auto-input-group">
+                            <label>奥行 (D)</label>
+                            <input type="number" class="auto-input" id="panelDepth" placeholder="mm">
+                        </div>
+                        <button class="auto-calc-btn" onclick="autoCalculatePanel()">自動計算</button>
+                    </div>
+                    
+                    <div class="panel-options">
+                        <div class="option-group">
+                            <label>制御盤タイプ</label>
+                            <select id="panelType">
+                                <option value="standard">標準盤</option>
+                                <option value="heavy">重装備盤</option>
+                                <option value="light">軽装備盤</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label>扉仕様</label>
+                            <select id="doorType">
+                                <option value="single">片開き</option>
+                                <option value="double">両開き</option>
+                                <option value="none">扉なし</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label>屋根仕様</label>
+                            <select id="roofType">
+                                <option value="flat">平屋根</option>
+                                <option value="slant">片流れ</option>
+                                <option value="none">屋根なし</option>
+                            </select>
+                        </div>
+                        <div class="option-group checkbox-group">
+                            <input type="checkbox" id="hasBase" onchange="toggleBaseInput()">
+                            <label>ベース付き</label>
+                        </div>
+                        <div class="option-group checkbox-group">
+                            <input type="checkbox" id="hasFrame">
+                            <label>補強フレーム</label>
+                        </div>
+                        <div class="option-group checkbox-group">
+                            <input type="checkbox" id="hasEquipment">
+                            <label>器具板</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">
+                    📝 構造部品入力
+                </div>
+
+                <div class="categories">
+                    <!-- 箱関連 -->
+                    <div class="category" data-category="box">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon box">📦</div>
+                                箱構造
+                            </div>
+                            <button class="toggle-btn active" onclick="toggleCategory(this)">有効</button>
+                        </div>
+                        
+                        <div class="input-row active">
+                            <div class="input-label">箱正面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                        <div class="input-row active">
+                            <div class="input-label">箱側面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height">
+                            <input type="number" class="input-field" placeholder="個数" value="2" data-type="count">
+                        </div>
+                        <div class="input-row active">
+                            <div class="input-label">箱天井</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="D(mm)" data-type="depth">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+                        <div class="input-row active">
+                            <div class="input-label">箱底面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width">
+                            <input type="number" class="input-field" placeholder="D(mm)" data-type="depth">
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count">
+                        </div>
+
+                        <div class="input-row" id="baseRow">
+                            <div class="input-label">ベース</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width" disabled>
+                            <input type="number" class="input-field" placeholder="D(mm)" data-type="depth" disabled>
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count" disabled>
+                        </div>
+
+                        <div class="quick-buttons">
+                            <button class="quick-btn" onclick="setStandardBox(400, 300, 200)">標準小</button>
+                            <button class="quick-btn" onclick="setStandardBox(600, 400, 300)">標準中</button>
+                            <button class="quick-btn" onclick="setStandardBox(800, 600, 400)">標準大</button>
+                        </div>
+                    </div>
+
+                    <!-- 扉 -->
+                    <div class="category" data-category="door">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon door">🚪</div>
+                                扉
+                            </div>
+                            <button class="toggle-btn" onclick="toggleCategory(this)">無効</button>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-label">扉</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width" disabled>
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height" disabled>
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count" disabled>
+                        </div>
+
+                        <div class="quick-buttons">
+                            <button class="quick-btn" onclick="setDoorType('single')">片開き</button>
+                            <button class="quick-btn" onclick="setDoorType('double')">両開き</button>
+                            <button class="quick-btn" onclick="setDoorType('slide')">引き戸</button>
+                        </div>
+                    </div>
+
+                    <!-- 屋根関連 -->
+                    <div class="category" data-category="roof">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon roof">🏠</div>
+                                屋根構造
+                            </div>
+                            <button class="toggle-btn" onclick="toggleCategory(this)">無効</button>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-label">屋根正面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width" disabled>
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height" disabled>
+                            <input type="number" class="input-field" placeholder="个数" value="1" data-type="count" disabled>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">屋根側面</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width" disabled>
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height" disabled>
+                            <input type="number" class="input-field" placeholder="个数" value="2" data-type="count" disabled>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">屋根上部</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width" disabled>
+                            <input type="number" class="input-field" placeholder="D(mm)" data-type="depth" disabled>
+                            <input type="number" class="input-field" placeholder="个数" value="1" data-type="count" disabled>
+                        </div>
+
+                        <div class="quick-buttons">
+                            <button class="quick-btn" onclick="setRoofType('flat')">平屋根</button>
+                            <button class="quick-btn" onclick="setRoofType('gable')">切妻</button>
+                            <button class="quick-btn" onclick="setRoofType('slant')">片流れ</button>
+                        </div>
+                    </div>
+
+                    <!-- フレーム材 -->
+                    <div class="category" data-category="frame">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon pillar">🏛️</div>
+                                フレーム材
+                            </div>
+                            <button class="toggle-btn" onclick="toggleCategory(this)">無効</button>
+                        </div>
+                        
+                        <div class="frame-row">
+                            <div class="input-label">角パイプ 200x150x4.5</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" disabled step="0.1">
+                            <div class="unit-weight">31.0kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count" disabled>
+                        </div>
+                        <div class="frame-row">
+                            <div class="input-label">アングル L6x75</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" disabled step="0.1">
+                            <div class="unit-weight">8.9kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count" disabled>
+                        </div>
+                        <div class="frame-row">
+                            <div class="input-label">チャンネル C150x75x9</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" disabled step="0.1">
+                            <div class="unit-weight">16.8kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count" disabled>
+                        </div>
+                        <div class="frame-row">
+                            <div class="input-label">フラットバー FB12x150</div>
+                            <input type="number" class="input-field" placeholder="長さ(m)" data-type="length" disabled step="0.1">
+                            <div class="unit-weight">14.1kg/m</div>
+                            <input type="number" class="input-field" placeholder="本数" value="1" data-type="count" disabled>
+                        </div>
+
+                        <div class="quick-buttons">
+                            <button class="quick-btn" onclick="setFrameLength(1.0)">1m</button>
+                            <button class="quick-btn" onclick="setFrameLength(2.0)">2m</button>
+                            <button class="quick-btn" onclick="setFrameLength(3.0)">3m</button>
+                        </div>
+                    </div>
+
+                    <!-- 器具板 -->
+                    <div class="category" data-category="equipment">
+                        <div class="category-header">
+                            <div class="category-name">
+                                <div class="category-icon equipment">⚙️</div>
+                                器具板
+                            </div>
+                            <button class="toggle-btn" onclick="toggleCategory(this)">無効</button>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-label">器具板</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width" disabled>
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height" disabled>
+                            <input type="number" class="input-field" placeholder="個数" value="1" data-type="count" disabled>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-label">取付板</div>
+                            <input type="number" class="input-field" placeholder="W(mm)" data-type="width" disabled>
+                            <input type="number" class="input-field" placeholder="H(mm)" data-type="height" disabled>
+                            <input type="number" class="input-field" placeholder="個数" value="2" data-type="count" disabled>
+                        </div>
+
+                        <div class="quick-buttons">
+                            <button class="quick-btn" onclick="setEquipmentSize('small')">小型</button>
+                            <button class="quick-btn" onclick="setEquipmentSize('medium')">中型</button>
+                            <button class="quick-btn" onclick="setEquipmentSize('large')">大型</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-panel">
+                <div class="results-title">
+                    📊 計算結果
+                </div>
+
+                <!-- 材質・厚み選択 -->
+                <div class="material-selector">
+                    <label>材質選択</label>
+                    <select id="materialSelect" onchange="updateWeightInfo()">
+                        <option value="spcc">SPCC (冷延鋼板)</option>
+                        <option value="sphc">SPHC (熱延鋼板)</option>
+                        <option value="sus304">SUS304 (ステンレス)</option>
+                        <option value="sus430">SUS430 (ステンレス)</option>
+                        <option value="aluminum">A5052 (アルミニウム)</option>
+                        <option value="galvanized">溶融亜鉛メッキ鋼板</option>
+                    </select>
+                </div>
+
+                <div class="thickness-selector">
+                    <label>板厚選択</label>
+                    <select id="thicknessSelect" onchange="updateWeightInfo()">
+                        <option value="0.8">0.8mm</option>
+                        <option value="1.0">1.0mm</option>
+                        <option value="1.2">1.2mm</option>
+                        <option value="1.6" selected>1.6mm</option>
+                        <option value="2.0">2.0mm</option>
+                        <option value="2.3">2.3mm</option>
+                        <option value="3.2">3.2mm</option>
+                        <option value="4.5">4.5mm</option>
+                        <option value="6.0">6.0mm</option>
+                    </select>
+                </div>
+
+                <div class="weight-info" id="weightInfo">
+                    <strong>SPCC 1.6mm:</strong> 12.56 kg/m²
+                </div>
+
+                <!-- 合計重量 -->
+                <div class="total-weight">
+                    <div class="label">総重量</div>
+                    <div class="value" id="totalWeight">0.0 kg</div>
+                </div>
+
+                <!-- 詳細内訳 -->
+                <div class="breakdown" id="breakdown">
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">箱構造</span>
+                        <span class="breakdown-value" id="boxWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">扉</span>
+                        <span class="breakdown-value" id="doorWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">屋根構造</span>
+                        <span class="breakdown-value" id="roofWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">フレーム材</span>
+                        <span class="breakdown-value" id="frameWeight">0.0 kg</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">器具板</span>
+                        <span class="breakdown-value" id="equipmentWeight">0.0 kg</span>
+                    </div>
+                </div>
+
+                <!-- アクションボタン -->
+                <div class="action-buttons">
+                    <button class="action-btn calculate-btn" onclick="calculateWeight()">計算実行</button>
+                    <button class="action-btn reset-btn" onclick="resetAll()">リセット</button>
+                </div>
+
+                <!-- 追加情報 -->
+                <div class="weight-info">
+                    <div style="margin-bottom: 10px;"><strong>計算式:</strong></div>
+                    <div>重量 = 面積(m²) × 板厚(mm) × 材質密度(kg/m²/mm)</div>
+                    <div>フレーム = 長さ(m) × 単位重量(kg/m)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 材質密度データ (kg/m²/mm)
+        const materialDensity = {
+            'spcc': 7.85,      // SPCC 冷延鋼板
+            'sphc': 7.85,      // SPHC 熱延鋼板
+            'sus304': 8.00,    // SUS304 ステンレス
+            'sus430': 7.75,    // SUS430 ステンレス
+            'aluminum': 2.71,  // A5052 アルミニウム
+            'galvanized': 7.85 // 溶融亜鉛メッキ鋼板
+        };
+
+        // 材質名称データ
+        const materialNames = {
+            'spcc': 'SPCC (冷延鋼板)',
+            'sphc': 'SPHC (熱延鋼板)',
+            'sus304': 'SUS304 (ステンレス)',
+            'sus430': 'SUS430 (ステンレス)',
+            'aluminum': 'A5052 (アルミニウム)',
+            'galvanized': '溶融亜鉛メッキ鋼板'
+        };
+
+        // フレーム材単位重量 (kg/m)
+        const frameWeights = {
+            'square_200x150x4.5': 31.0,
+            'angle_6x75': 8.9,
+            'channel_150x75x9': 16.8,
+            'flat_12x150': 14.1
+        };
+
+        // カテゴリ切り替え
+        function toggleCategory(button) {
+            const category = button.closest('.category');
+            const rows = category.querySelectorAll('.input-row, .frame-row');
+            const isActive = button.classList.contains('active');
+            
+            if (isActive) {
+                button.classList.remove('active');
+                button.textContent = '無効';
+                rows.forEach(row => {
+                    row.classList.remove('active');
+                    row.querySelectorAll('.input-field').forEach(field => {
+                        field.disabled = true;
+                    });
+                });
+            } else {
+                button.classList.add('active');
+                button.textContent = '有効';
+                rows.forEach(row => {
+                    row.classList.add('active');
+                    row.querySelectorAll('.input-field').forEach(field => {
+                        field.disabled = false;
+                    });
+                });
+            }
+        }
+
+        // ベース入力切り替え
+        function toggleBaseInput() {
+            const hasBase = document.getElementById('hasBase').checked;
+            const baseRow = document.getElementById('baseRow');
+            const inputs = baseRow.querySelectorAll('.input-field');
+            
+            if (hasBase) {
+                baseRow.classList.add('active');
+                inputs.forEach(input => input.disabled = false);
+            } else {
+                baseRow.classList.remove('active');
+                inputs.forEach(input => {
+                    input.disabled = true;
+                    input.value = '';
+                });
+            }
+        }
+
+        // 制御盤自動計算
+        function autoCalculatePanel() {
+            const width = parseFloat(document.getElementById('panelWidth').value);
+            const height = parseFloat(document.getElementById('panelHeight').value);
+            const depth = parseFloat(document.getElementById('panelDepth').value);
+            
+            if (!width || !height || !depth) {
+                alert('幅、高さ、奥行をすべて入力してください。');
+                return;
+            }
+
+            // 箱構造の自動設定
+            setBoxDimensions(width, height, depth);
+            
+            // 扉の自動設定
+            const doorType = document.getElementById('doorType').value;
+            if (doorType !== 'none') {
+                setDoorDimensions(width, height, doorType);
+            }
+
+            // 屋根の自動設定
+            const roofType = document.getElementById('roofType').value;
+            if (roofType !== 'none') {
+                setRoofDimensions(width, height, depth, roofType);
+            }
+
+            // ベースの自動設定
+            if (document.getElementById('hasBase').checked) {
+                setBaseDimensions(width, depth);
+            }
+
+            // 器具板の自動設定
+            if (document.getElementById('hasEquipment').checked) {
+                setEquipmentDimensions(width, height);
+            }
+
+            // 計算実行
+            setTimeout(calculateWeight, 100);
+        }
+
+        // 箱構造寸法設定
+        function setBoxDimensions(w, h, d) {
+            const boxCategory = document.querySelector('[data-category="box"]');
+            const button = boxCategory.querySelector('.toggle-btn');
+            
+            if (!button.classList.contains('active')) {
+                toggleCategory(button);
+            }
+
+            const rows = boxCategory.querySelectorAll('.input-row.active');
+            
+            // 箱正面
+            if (rows[0]) {
+                rows[0].querySelector('[data-type="width"]').value = w;
+                rows[0].querySelector('[data-type="height"]').value = h;
+            }
+            
+            // 箱側面
+            if (rows[1]) {
+                rows[1].querySelector('[data-type="width"]').value = d;
+                rows[1].querySelector('[data-type="height"]').value = h;
+            }
+            
+            // 箱天井
+            if (rows[2]) {
+                rows[2].querySelector('[data-type="width"]').value = w;
+                rows[2].querySelector('[data-type="depth"]').value = d;
+            }
+            
+            // 箱底面
+            if (rows[3]) {
+                rows[3].querySelector('[data-type="width"]').value = w;
+                rows[3].querySelector('[data-type="depth"]').value = d;
+            }
+        }
+
+        // ベース寸法設定
+        function setBaseDimensions(w, d) {
+            const baseRow = document.getElementById('baseRow');
+            if (baseRow.classList.contains('active')) {
+                baseRow.querySelector('[data-type="width"]').value = w;
+                baseRow.querySelector('[data-type="depth"]').value = d;
+            }
+        }
+
+        // 扉寸法設定
+        function setDoorDimensions(w, h, type) {
+            const doorCategory = document.querySelector('[data-category="door"]');
+            const button = doorCategory.querySelector('.toggle-btn');
+            
+            if (!button.classList.contains('active')) {
+                toggleCategory(button);
+            }
+
+            const row = doorCategory.querySelector('.input-row');
+            if (row) {
+                if (type === 'double') {
+                    row.querySelector('[data-type="width"]').value = w / 2;
+                    row.querySelector('[data-type="count"]').value = 2;
+                } else {
+                    row.querySelector('[data-type="width"]').value = w;
+                    row.querySelector('[data-type="count"]').value = 1;
+                }
+                row.querySelector('[data-type="height"]').value = h;
+            }
+        }
+
+        // 屋根寸法設定
+        function setRoofDimensions(w, h, d, type) {
+            const roofCategory = document.querySelector('[data-category="roof"]');
+            const button = roofCategory.querySelector('.toggle-btn');
+            
+            if (!button.classList.contains('active')) {
+                toggleCategory(button);
+            }
+
+            const rows = roofCategory.querySelectorAll('.input-row');
+            const roofHeight = type === 'flat' ? 100 : 150;
+            
+            // 屋根正面
+            if (rows[0]) {
+                rows[0].querySelector('[data-type="width"]').value = w;
+                rows[0].querySelector('[data-type="height"]').value = roofHeight;
+            }
+            
+            // 屋根側面
+            if (rows[1]) {
+                rows[1].querySelector('[data-type="width"]').value = d;
+                rows[1].querySelector('[data-type="height"]').value = roofHeight;
+            }
+            
+            // 屋根上部
+            if (rows[2]) {
+                rows[2].querySelector('[data-type="width"]').value = w;
+                rows[2].querySelector('[data-type="depth"]').value = d;
+            }
+        }
+
+        // 器具板寸法設定
+        function setEquipmentDimensions(w, h) {
+            const equipmentCategory = document.querySelector('[data-category="equipment"]');
+            const button = equipmentCategory.querySelector('.toggle-btn');
+            
+            if (!button.classList.contains('active')) {
+                toggleCategory(button);
+            }
+
+            const rows = equipmentCategory.querySelectorAll('.input-row');
+            
+            // 器具板
+            if (rows[0]) {
+                rows[0].querySelector('[data-type="width"]').value = w - 100;
+                rows[0].querySelector('[data-type="height"]').value = h - 200;
+            }
+        }
+
+        // 標準箱サイズ設定
+        function setStandardBox(w, h, d) {
+            setBoxDimensions(w, h, d);
+            document.getElementById('panelWidth').value = w;
+            document.getElementById('panelHeight').value = h;
+            document.getElementById('panelDepth').value = d;
+        }
+
+        // 扉タイプ設定
+        function setDoorType(type) {
+            document.getElementById('doorType').value = type === 'single' ? 'single' : 
+                                                      type === 'double' ? 'double' : 'single';
+        }
+
+        // 屋根タイプ設定
+        function setRoofType(type) {
+            document.getElementById('roofType').value = type;
+        }
+
+        // フレーム長さ設定
+        function setFrameLength(length) {
+            const frameCategory = document.querySelector('[data-category="frame"]');
+            const lengthInputs = frameCategory.querySelectorAll('[data-type="length"]');
+            lengthInputs.forEach(input => {
+                if (!input.disabled) {
+                    input.value = length;
+                }
+            });
+        }
+
+        // 器具サイズ設定
+        function setEquipmentSize(size) {
+            const dimensions = {
+                'small': [300, 200],
+                'medium': [500, 400],
+                'large': [700, 600]
+            };
+            
+            const [w, h] = dimensions[size];
+            const equipmentCategory = document.querySelector('[data-category="equipment"]');
+            const rows = equipmentCategory.querySelectorAll('.input-row');
+            
+            if (rows[0]) {
+                rows[0].querySelector('[data-type="width"]').value = w;
+                rows[0].querySelector('[data-type="height"]').value = h;
+            }
+        }
+
+        // 重量情報更新
+        function updateWeightInfo() {
+            const material = document.getElementById('materialSelect').value;
+            const thickness = parseFloat(document.getElementById('thicknessSelect').value);
+            const density = materialDensity[material];
+            const weightPerSqm = (density * thickness).toFixed(2);
+            
+            document.getElementById('weightInfo').innerHTML = 
+                `<strong>${materialNames[material]} ${thickness}mm:</strong> ${weightPerSqm} kg/m²`;
+        }
+
+        // 重量計算
+        function calculateWeight() {
+            const material = document.getElementById('materialSelect').value;
+            const thickness = parseFloat(document.getElementById('thicknessSelect').value);
+            const density = materialDensity[material];
+            
+            let totalWeight = 0;
+            const breakdown = {
+                box: 0,
+                door: 0,
+                roof: 0,
+                frame: 0,
+                equipment: 0
+            };
+
+            // 箱構造計算
+            const boxCategory = document.querySelector('[data-category="box"]');
+            if (boxCategory.querySelector('.toggle-btn').classList.contains('active')) {
+                const rows = boxCategory.querySelectorAll('.input-row.active');
+                rows.forEach(row => {
+                    const w = parseFloat(row.querySelector('[data-type="width"]')?.value || 0);
+                    const h = parseFloat(row.querySelector('[data-type="height"]')?.value || 0);
+                    const d = parseFloat(row.querySelector('[data-type="depth"]')?.value || 0);
+                    const count = parseFloat(row.querySelector('[data-type="count"]')?.value || 1);
+                    
+                    let area = 0;
+                    if (w && h) area = (w * h) / 1000000; // mm² to m²
+                    if (w && d) area = (w * d) / 1000000; // mm² to m²
+                    
+                    breakdown.box += area * density * thickness * count;
+                });
+            }
+
+            // 扉計算
+            const doorCategory = document.querySelector('[data-category="door"]');
+            if (doorCategory.querySelector('.toggle-btn').classList.contains('active')) {
+                const row = doorCategory.querySelector('.input-row');
+                const w = parseFloat(row.querySelector('[data-type="width"]')?.value || 0);
+                const h = parseFloat(row.querySelector('[data-type="height"]')?.value || 0);
+                const count = parseFloat(row.querySelector('[data-type="count"]')?.value || 1);
+                
+                if (w && h) {
+                    const area = (w * h) / 1000000;
+                    breakdown.door = area * density * thickness * count;
+                }
+            }
+
+            // 屋根計算
+            const roofCategory = document.querySelector('[data-category="roof"]');
+            if (roofCategory.querySelector('.toggle-btn').classList.contains('active')) {
+                const rows = roofCategory.querySelectorAll('.input-row');
+                rows.forEach(row => {
+                    const w = parseFloat(row.querySelector('[data-type="width"]')?.value || 0);
+                    const h = parseFloat(row.querySelector('[data-type="height"]')?.value || 0);
+                    const d = parseFloat(row.querySelector('[data-type="depth"]')?.value || 0);
+                    const count = parseFloat(row.querySelector('[data-type="count"]')?.value || 1);
+                    
+                    let area = 0;
+                    if (w && h) area = (w * h) / 1000000;
+                    if (w && d) area = (w * d) / 1000000;
+                    
+                    breakdown.roof += area * density * thickness * count;
+                });
+            }
+
+            // フレーム材計算
+            const frameCategory = document.querySelector('[data-category="frame"]');
+            if (frameCategory.querySelector('.toggle-btn').classList.contains('active')) {
+                const rows = frameCategory.querySelectorAll('.frame-row');
+                const frameTypes = ['square_200x150x4.5', 'angle_6x75', 'channel_150x75x9', 'flat_12x150'];
+                
+                rows.forEach((row, index) => {
+                    const length = parseFloat(row.querySelector('[data-type="length"]')?.value || 0);
+                    const count = parseFloat(row.querySelector('[data-type="count"]')?.value || 1);
+                    
+                    if (length && frameTypes[index]) {
+                        breakdown.frame += length * frameWeights[frameTypes[index]] * count;
+                    }
+                });
+            }
+
+            // 器具板計算
+            const equipmentCategory = document.querySelector('[data-category="equipment"]');
+            if (equipmentCategory.querySelector('.toggle-btn').classList.contains('active')) {
+                const rows = equipmentCategory.querySelectorAll('.input-row');
+                rows.forEach(row => {
+                    const w = parseFloat(row.querySelector('[data-type="width"]')?.value || 0);
+                    const h = parseFloat(row.querySelector('[data-type="height"]')?.value || 0);
+                    const count = parseFloat(row.querySelector('[data-type="count"]')?.value || 1);
+                    
+                    if (w && h) {
+                        const area = (w * h) / 1000000;
+                        breakdown.equipment += area * density * thickness * count;
+                    }
+                });
+            }
+
+            // 合計計算
+            totalWeight = breakdown.box + breakdown.door + breakdown.roof + 
+                         breakdown.frame + breakdown.equipment;
+
+            // 結果表示
+            document.getElementById('totalWeight').textContent = totalWeight.toFixed(1) + ' kg';
+            document.getElementById('boxWeight').textContent = breakdown.box.toFixed(1) + ' kg';
+            document.getElementById('doorWeight').textContent = breakdown.door.toFixed(1) + ' kg';
+            document.getElementById('roofWeight').textContent = breakdown.roof.toFixed(1) + ' kg';
+            document.getElementById('frameWeight').textContent = breakdown.frame.toFixed(1) + ' kg';
+            document.getElementById('equipmentWeight').textContent = breakdown.equipment.toFixed(1) + ' kg';
+        }
+
+        // リセット
+        function resetAll() {
+            // 入力フィールドクリア
+            document.querySelectorAll('.input-field, .auto-input').forEach(field => {
+                if (!field.hasAttribute('value') || field.getAttribute('value') === '') {
+                    field.value = '';
+                }
+            });
+
+            // カテゴリ無効化（箱構造以外）
+            document.querySelectorAll('.category').forEach(category => {
+                const button = category.querySelector('.toggle-btn');
+                const isBox = category.getAttribute('data-category') === 'box';
+                
+                if (!isBox && button.classList.contains('active')) {
+                    toggleCategory(button);
+                }
+            });
+
+            // チェックボックスリセット
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            
+            // ベース行無効化
+            toggleBaseInput();
+
+            // 結果リセット
+            document.getElementById('totalWeight').textContent = '0.0 kg';
+            document.getElementById('boxWeight').textContent = '0.0 kg';
+            document.getElementById('doorWeight').textContent = '0.0 kg';
+            document.getElementById('roofWeight').textContent = '0.0 kg';
+            document.getElementById('frameWeight').textContent = '0.0 kg';
+            document.getElementById('equipmentWeight').textContent = '0.0 kg';
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateWeightInfo();
+            
+            // 自動計算のトリガー設定
+            document.querySelectorAll('.input-field').forEach(field => {
+                field.addEventListener('input', function() {
+                    // 自動計算（デバウンス付き）
+                    clearTimeout(this.calcTimeout);
+                    this.calcTimeout = setTimeout(calculateWeight, 500);
+                });
+            });
+
+            // セレクトボックス変更時の自動計算
+            document.getElementById('materialSelect').addEventListener('change', calculateWeight);
+            document.getElementById('thicknessSelect').addEventListener('change', calculateWeight);
+        });
+    </script>
+</body>
+</html>

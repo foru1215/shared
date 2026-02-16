@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盤質量計算システム Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --card-hover: #f8fafc;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --radius: 16px;
+            --header-h: 80px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: #fff;
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .header-icon {
+            font-size: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+
+        .header p {
+            font-size: .85rem;
+            opacity: .75;
+            margin-top: 2px;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--success), var(--warning), var(--danger));
+        }
+
+        /* ===== Layout ===== */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            max-width: 1500px;
+            margin: 0 auto;
+            gap: 0;
+            min-height: calc(100vh - var(--header-h));
+        }
+
+        .input-area {
+            padding: 28px 32px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .result-area {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 28px 24px;
+            position: sticky;
+            top: var(--header-h);
+            height: calc(100vh - var(--header-h));
+            overflow-y: auto;
+            border-left: 3px solid transparent;
+            border-image: linear-gradient(180deg, var(--primary), var(--success), var(--warning)) 1;
+        }
+
+        /* ===== Card ===== */
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: box-shadow .25s, transform .25s;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card.disabled-card {
+            opacity: .45;
+            pointer-events: none;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            cursor: default;
+            user-select: none;
+        }
+
+        .card-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .card-subtitle {
+            font-size: .8rem;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-body.hidden {
+            display: none;
+        }
+
+        /* Icon colors */
+        .icon-dim {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+
+        .icon-env {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+        }
+
+        .icon-box {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+        }
+
+        .icon-door {
+            background: linear-gradient(135deg, #eab308, #ca8a04);
+        }
+
+        .icon-base {
+            background: linear-gradient(135deg, #78716c, #57534e);
+        }
+
+        .icon-mid {
+            background: linear-gradient(135deg, #a855f7, #9333ea);
+        }
+
+        .icon-equip {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        .icon-roof {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .icon-frame {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+
+        .icon-parts {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        /* ===== Toggle Switch ===== */
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #cbd5e1;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background .3s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform .3s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+        }
+
+        .toggle input:checked+.toggle-slider {
+            background: var(--primary);
+        }
+
+        .toggle input:checked+.toggle-slider::before {
+            transform: translateX(22px);
+        }
+
+        /* ===== Form elements ===== */
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .form-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            font-weight: 500;
+            font-size: .9rem;
+            color: var(--text-secondary);
+            min-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .form-input {
+            padding: 9px 12px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: .9rem;
+            font-family: inherit;
+            background: #f8fafc;
+            transition: border-color .2s, box-shadow .2s;
+            text-align: center;
+            width: 100px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .15);
+            background: #fff;
+        }
+
+        .form-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .form-select {
+            padding: 9px 12px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: .9rem;
+            font-family: inherit;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: border-color .2s;
+            min-width: 140px;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .dim-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dim-group .unit {
+            font-size: .85rem;
+            color: var(--text-secondary);
+        }
+
+        .dim-note {
+            font-size: .75rem;
+            color: var(--primary);
+            font-weight: 500;
+            background: #eff6ff;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        /* Radio group */
+        .radio-group {
+            display: flex;
+            gap: 4px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 3px;
+        }
+
+        .radio-group label {
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: .85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .2s;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .radio-group input {
+            display: none;
+        }
+
+        .radio-group input:checked+span {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, .3);
+        }
+
+        .radio-group label span {
+            display: block;
+            padding: 7px 16px;
+            border-radius: 8px;
+            transition: all .2s;
+        }
+
+        /* Material selector inline */
+        .mat-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mat-row label {
+            font-size: .85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Frame rows */
+        .frame-item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .frame-item .remove-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--danger);
+            color: #fff;
+            border: none;
+            font-size: .75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: .7;
+            transition: opacity .2s;
+        }
+
+        .frame-item .remove-btn:hover {
+            opacity: 1;
+        }
+
+        .add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 10px;
+            background: #f0fdf4;
+            border: 2px dashed #86efac;
+            border-radius: 10px;
+            color: #16a34a;
+            font-weight: 600;
+            font-size: .9rem;
+            cursor: pointer;
+            transition: background .2s, border-color .2s;
+        }
+
+        .add-btn:hover {
+            background: #dcfce7;
+            border-color: #4ade80;
+        }
+
+        /* Section divider */
+        .section-label {
+            font-size: .95rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ===== Result panel ===== */
+        .result-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .total-box {
+            text-align: center;
+            padding: 24px 16px;
+            background: rgba(255, 255, 255, .06);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            margin-bottom: 24px;
+        }
+
+        .total-label {
+            font-size: .95rem;
+            opacity: .8;
+            margin-bottom: 6px;
+        }
+
+        .total-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--warning);
+            text-shadow: 0 2px 10px rgba(245, 158, 11, .3);
+        }
+
+        .total-value .unit {
+            font-size: 1.2rem;
+            opacity: .8;
+        }
+
+        .breakdown-list {
+            margin-bottom: 24px;
+        }
+
+        .bd-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .04);
+            border-left: 4px solid var(--primary);
+            margin-bottom: 6px;
+            transition: background .2s, transform .2s;
+        }
+
+        .bd-item:hover {
+            background: rgba(255, 255, 255, .08);
+            transform: translateX(4px);
+        }
+
+        .bd-label {
+            font-size: .9rem;
+            font-weight: 500;
+        }
+
+        .bd-value {
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--warning);
+        }
+
+        .bd-item[data-key="box"] {
+            border-left-color: #f97316;
+        }
+
+        .bd-item[data-key="door"] {
+            border-left-color: #eab308;
+        }
+
+        .bd-item[data-key="base"] {
+            border-left-color: #78716c;
+        }
+
+        .bd-item[data-key="mid"] {
+            border-left-color: #a855f7;
+        }
+
+        .bd-item[data-key="equip"] {
+            border-left-color: #22c55e;
+        }
+
+        .bd-item[data-key="roof"] {
+            border-left-color: #3b82f6;
+        }
+
+        .bd-item[data-key="frame"] {
+            border-left-color: #ec4899;
+        }
+
+        .bd-item[data-key="parts"] {
+            border-left-color: #ef4444;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: .95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-calc {
+            background: linear-gradient(135deg, var(--success), #16a34a);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, .3);
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, .3);
+        }
+
+        .detail-box {
+            background: rgba(255, 255, 255, .05);
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            margin-bottom: 16px;
+        }
+
+        .detail-title {
+            font-size: .85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #94a3b8;
+        }
+
+        .detail-line {
+            font-size: .78rem;
+            line-height: 1.7;
+            color: #cbd5e1;
+            word-break: break-all;
+        }
+
+        .formula-box {
+            background: rgba(255, 255, 255, .05);
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            margin-bottom: 12px;
+        }
+
+        .formula-box .ft {
+            font-size: .82rem;
+            color: var(--warning);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .formula-box .fl {
+            font-size: .78rem;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        .ref-box {
+            text-align: center;
+            font-size: .75rem;
+            color: #64748b;
+            margin-top: 12px;
+        }
+
+        .ref-box a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .ref-box a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== Help note ===== */
+        .help-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #fefce8, #fef9c3);
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            font-size: .8rem;
+            color: #92400e;
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .help-note .help-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* ===== Progress bar in results ===== */
+        .bd-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, .08);
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .bd-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .4s ease;
+            min-width: 0;
+        }
+
+        .bd-item[data-key="box"] .bd-bar {
+            background: #f97316;
+        }
+
+        .bd-item[data-key="door"] .bd-bar {
+            background: #eab308;
+        }
+
+        .bd-item[data-key="base"] .bd-bar {
+            background: #78716c;
+        }
+
+        .bd-item[data-key="mid"] .bd-bar {
+            background: #a855f7;
+        }
+
+        .bd-item[data-key="equip"] .bd-bar {
+            background: #22c55e;
+        }
+
+        .bd-item[data-key="roof"] .bd-bar {
+            background: #3b82f6;
+        }
+
+        .bd-item[data-key="frame"] .bd-bar {
+            background: #ec4899;
+        }
+
+        .bd-item[data-key="parts"] .bd-bar {
+            background: #ef4444;
+        }
+
+        .bd-item {
+            flex-wrap: wrap;
+        }
+
+        .bd-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* Card disabled state */
+        .card.section-off .card-header {
+            background: #f1f5f9;
+        }
+
+        .card.section-off .card-title {
+            color: #94a3b8;
+        }
+
+        .card.section-off .card-subtitle {
+            color: #cbd5e1;
+        }
+
+        .card.section-off .card-icon {
+            opacity: .4;
+        }
+
+        /* Dimension visual hint */
+        .dim-visual {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 1px solid #bae6fd;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: .82rem;
+            color: #0369a1;
+        }
+
+        .dim-visual .dv-icon {
+            font-size: 1.5rem;
+        }
+
+        .dim-visual .dv-text {
+            line-height: 1.5;
+        }
+
+        .dim-visual .dv-formula {
+            font-weight: 600;
+            font-family: 'Inter', monospace;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 1100px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .result-area {
+                position: relative;
+                top: 0;
+                height: auto;
+                order: -1;
+                border-left: none;
+                border-bottom: 3px solid transparent;
+                border-image: linear-gradient(90deg, var(--primary), var(--success), var(--warning)) 1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .input-area {
+                padding: 16px;
+            }
+
+            .form-row {
+                gap: 8px;
+            }
+
+            .header {
+                padding: 14px 16px;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ===== Header ===== -->
+    <header class="header">
+        <div class="header-icon">🔧</div>
+        <div>
+            <h1>盤質量計算システム Pro</h1>
+            <p>板金の材質仕様・JIS規格密度に基づく精密計算</p>
+        </div>
+    </header>
+
+    <!-- ===== Main Layout ===== -->
+    <div class="layout">
+        <div class="input-area">
+
+            <!-- 1. 基本寸法 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-dim">📏</div>
+                        <div>
+                            <div class="card-title">基本寸法</div>
+                            <div class="card-subtitle">制御盤の外形寸法を入力してください</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="dim-visual">
+                        <span class="dv-icon">📐</span>
+                        <div class="dv-text">W・H・Dを入力すると、各パーツの面積が自動算出されます。<br>
+                            <span class="dv-formula">質量 = 面積(m²) × 板厚(mm) × 密度(g/cm³)</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">幅 W</span>
+                        <div class="dim-group">
+                            <input type="number" class="form-input" id="dimW" placeholder="例: 800" min="0">
+                            <span class="unit">mm</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">高さ H</span>
+                        <div class="dim-group">
+                            <input type="number" class="form-input" id="dimH" placeholder="例: 2000" min="0">
+                            <span class="unit">mm</span>
+                        </div>
+                        <span class="dim-note">※ベース高さは含みません</span>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">奥行 D</span>
+                        <div class="dim-group">
+                            <input type="number" class="form-input" id="dimD" placeholder="例: 500" min="0">
+                            <span class="unit">mm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 設置条件 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-env">🏗</div>
+                        <div>
+                            <div class="card-title">設置条件</div>
+                            <div class="card-subtitle">設置環境と屋根の有無を選択</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <span class="form-label">設置場所</span>
+                        <div class="radio-group">
+                            <label><input type="radio" name="envPlace" value="indoor" checked><span>屋内</span></label>
+                            <label><input type="radio" name="envPlace" value="outdoor"><span>屋外</span></label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">屋根</span>
+                        <div class="radio-group">
+                            <label><input type="radio" name="envRoof" value="none" checked><span>屋根なし</span></label>
+                            <label><input type="radio" name="envRoof" value="roof"><span>屋根あり</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 筐体 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-box">📦</div>
+                        <div>
+                            <div class="card-title">筐体</div>
+                            <div class="card-subtitle">箱体の材質・板厚</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="help-note">
+                        <span class="help-icon">💡</span>
+                        <div>筐体は側面×2・天井・底面を常に含みます。<br>扉をONにすると、扉が前面（または前面＋背面）パネルを<strong>置き換え</strong>ます。</div>
+                    </div>
+                    <div class="mat-row form-row">
+                        <label>材質</label>
+                        <select class="form-select" id="boxMat"></select>
+                        <label>板厚</label>
+                        <select class="form-select" id="boxThk"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. 扉 -->
+            <div class="card" id="doorCard">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-door">🚪</div>
+                        <div>
+                            <div class="card-title">扉</div>
+                            <div class="card-subtitle">扉パネルの方向・材質を設定</div>
+                        </div>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="doorToggle" checked><span
+                            class="toggle-slider"></span></label>
+                </div>
+                <div class="card-body" id="doorBody">
+                    <div class="help-note" id="doorHelpNote">
+                        <span class="help-icon">💡</span>
+                        <div id="doorHelpText">「前面のみ」→ 扉が筐体の正面を置き換えます（背面は筐体の板）<br>「前面＋背面」→ 扉が筐体の正面・背面の両方を置き換えます</div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">取付方向</span>
+                        <div class="radio-group">
+                            <label><input type="radio" name="doorDir" value="front" checked><span>前面のみ</span></label>
+                            <label><input type="radio" name="doorDir" value="both"><span>前面＋背面</span></label>
+                        </div>
+                    </div>
+                    <div class="mat-row form-row">
+                        <label>材質</label>
+                        <select class="form-select" id="doorMat"></select>
+                        <label>板厚</label>
+                        <select class="form-select" id="doorThk"></select>
+                    </div>
+                    <div class="help-note"
+                        style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#86efac;color:#166534;"
+                        id="doorStructureHint">
+                        <span class="help-icon">📋</span>
+                        <div id="doorStructureText">筐体: 背面+側面×2+天井+底面 (5面) ＋ 扉: 前面 (1面) = <strong>合計6面</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. ベース -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-base">🏛</div>
+                        <div>
+                            <div class="card-title">ベース</div>
+                            <div class="card-subtitle">ベース（台座）の独立設定</div>
+                        </div>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="baseToggle"><span
+                            class="toggle-slider"></span></label>
+                </div>
+                <div class="card-body hidden" id="baseBody">
+                    <div class="form-row">
+                        <span class="form-label">ベース高さ</span>
+                        <div class="dim-group">
+                            <input type="number" class="form-input" id="baseH" placeholder="高さ" min="0" value="100">
+                            <span class="unit">mm</span>
+                        </div>
+                    </div>
+                    <div class="mat-row form-row">
+                        <label>材質</label>
+                        <select class="form-select" id="baseMat"></select>
+                        <label>板厚</label>
+                        <select class="form-select" id="baseThk"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. 仕切り板 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-mid">📐</div>
+                        <div>
+                            <div class="card-title">仕切り板</div>
+                            <div class="card-subtitle">筐体内部を分割する水平板</div>
+                        </div>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="midToggle"><span
+                            class="toggle-slider"></span></label>
+                </div>
+                <div class="card-body hidden" id="midBody">
+                    <div class="help-note">
+                        <span class="help-icon">📏</span>
+                        <div>計算寸法: <strong id="midDimText">W × D</strong>（外形寸法と同一）</div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">枚数</span>
+                        <input type="number" class="form-input" id="midCount" value="1" min="1" max="20">
+                        <span class="unit">枚</span>
+                    </div>
+                    <div class="mat-row form-row">
+                        <label>材質</label>
+                        <select class="form-select" id="midMat"></select>
+                        <label>板厚</label>
+                        <select class="form-select" id="midThk"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. 中板（機器取付板）×最大5枚 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-equip">⚙️</div>
+                        <div>
+                            <div class="card-title">中板</div>
+                            <div class="card-subtitle">機器取付板（最大5枚・個別サイズ指定可）</div>
+                        </div>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="equipToggle"><span
+                            class="toggle-slider"></span></label>
+                </div>
+                <div class="card-body hidden" id="equipBody">
+                    <div class="help-note">
+                        <span class="help-icon">📏</span>
+                        <div>デフォルト寸法: <strong>(W−100) × (H−100)</strong><br>
+                            個別にサイズを変更できます。空白の場合はデフォルト値で計算します</div>
+                    </div>
+                    <div id="equipContainer"></div>
+                    <button class="add-btn" id="addEquipBtn" onclick="addEquipRow()">＋ 中板を追加（最大5枚）</button>
+                </div>
+            </div>
+
+            <!-- 8. 屋根 -->
+            <div class="card" id="roofCard" style="display:none;">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-roof">🏠</div>
+                        <div>
+                            <div class="card-title">屋根構造</div>
+                            <div class="card-subtitle">屋根パネル（前面・側面・上面）</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <span class="form-label">屋根高さ</span>
+                        <div class="dim-group">
+                            <input type="number" class="form-input" id="roofH" placeholder="高さ" min="0" value="150">
+                            <span class="unit">mm</span>
+                        </div>
+                    </div>
+                    <div class="mat-row form-row">
+                        <label>材質</label>
+                        <select class="form-select" id="roofMat"></select>
+                        <label>板厚</label>
+                        <select class="form-select" id="roofThk"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. フレーム材 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-frame">🏗</div>
+                        <div>
+                            <div class="card-title">フレーム材</div>
+                            <div class="card-subtitle">アングル・チャンネル等の構造材</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="frameContainer"></div>
+                    <button class="add-btn" onclick="addFrameRow()">＋ フレーム材を追加</button>
+                </div>
+            </div>
+
+            <!-- 10. 部品配材 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-icon icon-parts">🔩</div>
+                        <div>
+                            <div class="card-title">部品配材</div>
+                            <div class="card-subtitle">その他部品・ケーブル等の質量を直接入力</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <span class="form-label">質量</span>
+                        <div class="dim-group">
+                            <input type="number" class="form-input" id="partsKg" placeholder="0" min="0" step="0.1"
+                                value="0">
+                            <span class="unit">kg</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /input-area -->
+
+        <!-- ===== Result Panel ===== -->
+        <div class="result-area">
+            <div class="result-title">📊 計算結果</div>
+
+            <div class="total-box">
+                <div class="total-label">総質量</div>
+                <div class="total-value"><span id="totalVal">0.0</span> <span class="unit">kg</span></div>
+            </div>
+
+            <div class="breakdown-list" id="breakdownList">
+                <div class="bd-item" data-key="box">
+                    <div class="bd-row"><span class="bd-label">📦 筐体</span><span class="bd-value" id="bdBox">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barBox" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="bd-item" data-key="door">
+                    <div class="bd-row"><span class="bd-label">🚪 扉</span><span class="bd-value" id="bdDoor">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barDoor" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="bd-item" data-key="base">
+                    <div class="bd-row"><span class="bd-label">🏛 ベース</span><span class="bd-value" id="bdBase">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barBase" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="bd-item" data-key="mid">
+                    <div class="bd-row"><span class="bd-label">📐 仕切り板</span><span class="bd-value" id="bdMid">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barMid" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="bd-item" data-key="equip">
+                    <div class="bd-row"><span class="bd-label">⚙️ 中板</span><span class="bd-value" id="bdEquip">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barEquip" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="bd-item" data-key="roof">
+                    <div class="bd-row"><span class="bd-label">🏠 屋根構造</span><span class="bd-value" id="bdRoof">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barRoof" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="bd-item" data-key="frame">
+                    <div class="bd-row"><span class="bd-label">🏗 フレーム材</span><span class="bd-value" id="bdFrame">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barFrame" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="bd-item" data-key="parts">
+                    <div class="bd-row"><span class="bd-label">🔩 部品配材</span><span class="bd-value" id="bdParts">0.0
+                            kg</span></div>
+                    <div class="bd-bar-wrap">
+                        <div class="bd-bar" id="barParts" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-calc" onclick="calculate()">計算実行</button>
+                <button class="btn btn-reset" onclick="resetAll()">リセット</button>
+            </div>
+
+            <div class="detail-box">
+                <div class="detail-title">📋 計算詳細</div>
+                <div class="detail-line" id="detailLines">寸法を入力すると計算詳細が表示されます</div>
+            </div>
+
+            <div class="formula-box">
+                <div class="ft">計算式</div>
+                <div class="fl">
+                    板金質量 = 面積(m²) × 板厚(mm) × 密度(g/cm³)<br>
+                    &nbsp;&nbsp;= 面積(m²) × 単位面積重量(kg/m²)<br>
+                    フレーム = 長さ(m) × 単位重量(kg/m) × 本数
+                </div>
+            </div>
+
+            <div class="formula-box">
+                <div class="ft">使用密度値（JIS規格準拠）</div>
+                <div class="fl">
+                    鋼板 (SPCC): 7.85 g/cm³ — JIS G3141<br>
+                    ステンレス (SUS304): 7.93 g/cm³ — JIS G4305<br>
+                    電気亜鉛めっき (SECC): 7.85 g/cm³ — JIS G3313<br>
+                    アルミ (A5052): 2.68 g/cm³ — JIS H4000
+                </div>
+            </div>
+
+            <div class="ref-box">
+                参考：<a href="https://teppan-ichiba.com/lecture/weight.html" target="_blank">鉄板広場</a> ／
+                <a href="https://www.kouzai-net.com/kouzaisaizuhyou.html" target="_blank">鋼材ネット</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================
+           データ定義
+           ========================================== */
+
+        // 材質データ：密度はJIS規格準拠 (g/cm³)
+        // 単位面積重量 (kg/m²) = 板厚(mm) × 密度(g/cm³)
+        // 例: SPCC 1.6mm → 1.6 × 7.85 = 12.56 kg/m²
+        const MATERIALS = {
+            SPCC: { name: '鋼板 (SPCC)', density: 7.85, thicknesses: [0.8, 1.0, 1.2, 1.6, 2.0, 2.3, 3.2, 4.5, 6.0] },
+            SUS304: { name: 'ステンレス (SUS304)', density: 7.93, thicknesses: [0.8, 1.0, 1.2, 1.5, 2.0, 3.0] },
+            SECC: { name: '電気亜鉛めっき (SECC)', density: 7.85, thicknesses: [0.8, 1.0, 1.2, 1.6, 2.0, 2.3] },
+            A5052: { name: 'アルミ (A5052)', density: 2.68, thicknesses: [1.0, 1.5, 2.0, 2.5, 3.0, 5.0] },
+        };
+
+        // フレーム材データ (単位重量 kg/m)  — 鋼材サイズ表より
+        const FRAME_DATA = {
+            'Lアングル': {
+                'L 3×20×20': 0.885, 'L 3×25×25': 1.12, 'L 3×30×30': 1.36,
+                'L 5×30×30': 2.16, 'L 3×40×40': 1.83, 'L 5×40×40': 2.95,
+                'L 4×50×50': 3.06, 'L 6×50×50': 4.43, 'L 6×65×65': 5.91,
+                'L 8×65×65': 7.66, 'L 6×75×75': 6.85, 'L 9×75×75': 9.96,
+                'L 12×75×75': 13.0, 'L 7×90×90': 9.59, 'L 10×90×90': 13.3,
+                'L 13×90×90': 17.0, 'L 7×100×100': 10.7, 'L 10×100×100': 14.9,
+                'L 13×100×100': 19.1, 'L 9×130×130': 17.9, 'L 12×130×130': 23.4,
+                'L 15×130×130': 28.8, 'L 12×150×150': 27.3, 'L 15×150×150': 33.6,
+                'L 19×150×150': 41.9, 'L 15×200×200': 45.3, 'L 20×200×200': 59.7,
+                'L 25×200×200': 73.6,
+            },
+            '不等辺アングル': {
+                '不L 9×75×90': 11.0, '不L 7×75×100': 9.32, '不L 10×75×100': 13.0,
+                '不L 13×75×100': 16.5, '不L 7×75×125': 10.7, '不L 10×75×125': 14.9,
+                '不L 10×90×125': 16.1, '不L 13×90×125': 20.6, '不L 9×90×150': 16.4,
+                '不L 12×90×150': 21.5, '不L 9×100×150': 17.1, '不L 12×100×150': 22.4,
+                '不L 15×100×150': 27.7,
+            },
+            'チャンネル': {
+                '[ 5×40×75': 6.92, '[ 5×50×100': 9.36, '[ 6×65×125': 13.4,
+                '[ 6.5×75×150': 18.6, '[ 9×75×150': 24.0, '[ 7×75×180': 21.4,
+                '[ 7.5×80×200': 24.6, '[ 8×90×200': 30.3, '[ 9×90×250': 34.6,
+                '[ 11×90×250': 40.2, '[ 9×90×300': 38.1, '[ 10×90×300': 43.8,
+                '[ 12×90×300': 48.6, '[ 10.5×100×380': 54.5, '[ 13×100×380': 67.3,
+            },
+            '角パイプ': {
+                '角パイプ 200×150×4.5': 31.0,
+            },
+            'フラットバー': {
+                'FB 12×150': 14.1,
+            },
+        };
+
+        /* ==========================================
+           セレクタ初期化
+           ========================================== */
+
+        function populateMaterialSelect(selectEl) {
+            selectEl.innerHTML = '';
+            for (const [key, mat] of Object.entries(MATERIALS)) {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = mat.name;
+                selectEl.appendChild(opt);
+            }
+        }
+
+        function populateThicknessSelect(matSelectEl, thkSelectEl) {
+            const matKey = matSelectEl.value;
+            const mat = MATERIALS[matKey];
+            if (!mat) return;
+            const prev = thkSelectEl.value;
+            thkSelectEl.innerHTML = '';
+            mat.thicknesses.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t + ' mm';
+                thkSelectEl.appendChild(opt);
+            });
+            // 以前の値があれば復元
+            if ([...thkSelectEl.options].some(o => o.value === prev)) {
+                thkSelectEl.value = prev;
+            }
+        }
+
+        function initMatThkPair(matId, thkId, defaultThk) {
+            const matEl = document.getElementById(matId);
+            const thkEl = document.getElementById(thkId);
+            populateMaterialSelect(matEl);
+            populateThicknessSelect(matEl, thkEl);
+            if (defaultThk) {
+                if ([...thkEl.options].some(o => o.value == defaultThk)) {
+                    thkEl.value = defaultThk;
+                }
+            }
+            matEl.addEventListener('change', () => {
+                populateThicknessSelect(matEl, thkEl);
+                calculate();
+            });
+            thkEl.addEventListener('change', calculate);
+        }
+
+        /* ==========================================
+           フレーム材の動的行
+           ========================================== */
+
+        function populateFrameSelect(sel) {
+            sel.innerHTML = '<option value="">— 部材を選択 —</option>';
+            for (const [group, items] of Object.entries(FRAME_DATA)) {
+                const og = document.createElement('optgroup');
+                og.label = group;
+                for (const [name, kgm] of Object.entries(items)) {
+                    const opt = document.createElement('option');
+                    opt.value = kgm;
+                    opt.textContent = name;
+                    og.appendChild(opt);
+                }
+                sel.appendChild(og);
+            }
+        }
+
+        function addFrameRow() {
+            const container = document.getElementById('frameContainer');
+            const div = document.createElement('div');
+            div.className = 'frame-item';
+            div.innerHTML = `
+        <button class="remove-btn" onclick="this.parentElement.remove(); calculate();">×</button>
+        <select class="form-select frame-sel" style="min-width:200px;"></select>
+        <div class="dim-group">
+            <input type="number" class="form-input frame-len" placeholder="長さ" min="0" step="0.01" style="width:80px;">
+            <span class="unit">m</span>
+        </div>
+        <div class="dim-group">
+            <input type="number" class="form-input frame-unit-w" placeholder="kg/m" disabled style="width:80px; background:#e2e8f0;">
+            <span class="unit">kg/m</span>
+        </div>
+        <div class="dim-group">
+            <input type="number" class="form-input frame-count" value="1" min="1" style="width:60px;">
+            <span class="unit">本</span>
+        </div>
+    `;
+            container.appendChild(div);
+
+            const sel = div.querySelector('.frame-sel');
+            populateFrameSelect(sel);
+            sel.addEventListener('change', function () {
+                div.querySelector('.frame-unit-w').value = this.value || '';
+                calculate();
+            });
+            div.querySelectorAll('input').forEach(i => i.addEventListener('input', calculate));
+        }
+
+        /* ==========================================
+           中板の動的行
+           ========================================== */
+
+        let equipRowCount = 0;
+        function addEquipRow() {
+            if (equipRowCount >= 5) return;
+            equipRowCount++;
+            const container = document.getElementById('equipContainer');
+            const div = document.createElement('div');
+            div.className = 'frame-item equip-item';
+            const num = equipRowCount;
+            const W = parseFloat(document.getElementById('dimW').value) || 0;
+            const H = parseFloat(document.getElementById('dimH').value) || 0;
+            const defW = Math.max(W - 100, 0);
+            const defH = Math.max(H - 100, 0);
+            div.innerHTML = `
+                <button class="remove-btn" onclick="removeEquipRow(this)">×</button>
+                <div style="width:100%;font-weight:600;font-size:.85rem;color:#475569;margin-bottom:4px;">中板${num}</div>
+                <div class="dim-group">
+                    <span style="font-size:.82rem;color:#64748b;">W</span>
+                    <input type="number" class="form-input equip-w" placeholder="${defW || 'W-100'}" min="0" style="width:80px;">
+                    <span class="unit">mm</span>
+                </div>
+                <div class="dim-group">
+                    <span style="font-size:.82rem;color:#64748b;">H</span>
+                    <input type="number" class="form-input equip-h" placeholder="${defH || 'H-100'}" min="0" style="width:80px;">
+                    <span class="unit">mm</span>
+                </div>
+                <select class="form-select equip-mat" style="min-width:130px;"></select>
+                <select class="form-select equip-thk" style="min-width:80px;"></select>
+            `;
+            container.appendChild(div);
+
+            const matSel = div.querySelector('.equip-mat');
+            const thkSel = div.querySelector('.equip-thk');
+            populateMaterialSelect(matSel);
+            populateThicknessSelect(matSel, thkSel);
+            if ([...thkSel.options].some(o => o.value === '2.3')) thkSel.value = '2.3';
+            matSel.addEventListener('change', () => { populateThicknessSelect(matSel, thkSel); calculate(); });
+            div.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('input', calculate);
+                el.addEventListener('change', calculate);
+            });
+
+            updateEquipBtn();
+            calculate();
+        }
+
+        function removeEquipRow(btn) {
+            btn.parentElement.remove();
+            equipRowCount--;
+            document.querySelectorAll('#equipContainer .equip-item').forEach((row, i) => {
+                const label = row.querySelector('div[style*="font-weight"]');
+                if (label) label.textContent = '中板' + (i + 1);
+            });
+            updateEquipBtn();
+            calculate();
+        }
+
+        function updateEquipBtn() {
+            const btn = document.getElementById('addEquipBtn');
+            if (btn) {
+                btn.style.display = equipRowCount >= 5 ? 'none' : '';
+                btn.textContent = `＋ 中板を追加（${equipRowCount}/5枚）`;
+            }
+        }
+
+        /* ==========================================
+           トグル制御
+           ========================================== */
+
+        function setupToggle(toggleId, bodyId) {
+            const toggle = document.getElementById(toggleId);
+            const body = document.getElementById(bodyId);
+            const card = toggle.closest('.card');
+            const updateState = () => {
+                body.classList.toggle('hidden', !toggle.checked);
+                if (card) card.classList.toggle('section-off', !toggle.checked);
+                calculate();
+            };
+            toggle.addEventListener('change', updateState);
+            // 初期状態を反映
+            if (card && !toggle.checked) card.classList.add('section-off');
+        }
+
+        function setupRoofVisibility() {
+            document.querySelectorAll('input[name="envRoof"]').forEach(r => {
+                r.addEventListener('change', () => {
+                    const hasRoof = document.querySelector('input[name="envRoof"]:checked').value === 'roof';
+                    document.getElementById('roofCard').style.display = hasRoof ? '' : 'none';
+                    calculate();
+                });
+            });
+        }
+
+        /* ==========================================
+           計算エンジン
+           ========================================== */
+
+        // 板金質量(kg) = W(mm) × H(mm) / 1,000,000 × thickness(mm) × density(g/cm³)
+        function plateWeight(wMm, hMm, thkMm, densityGcm3) {
+            return (wMm * hMm / 1_000_000) * thkMm * densityGcm3;
+        }
+
+        function getMatDensity(matSelectId) {
+            const key = document.getElementById(matSelectId).value;
+            return MATERIALS[key]?.density || 7.85;
+        }
+        function getThkVal(thkSelectId) {
+            return parseFloat(document.getElementById(thkSelectId).value) || 1.6;
+        }
+        function getMatName(matSelectId) {
+            const key = document.getElementById(matSelectId).value;
+            return MATERIALS[key]?.name || '';
+        }
+
+        function calculate() {
+            const W = parseFloat(document.getElementById('dimW').value) || 0;
+            const H = parseFloat(document.getElementById('dimH').value) || 0;
+            const D = parseFloat(document.getElementById('dimD').value) || 0;
+
+            const bd = { box: 0, door: 0, base: 0, mid: 0, equip: 0, roof: 0, frame: 0, parts: 0 };
+            const details = [];
+
+            if (W <= 0 || H <= 0 || D <= 0) {
+                updateUI(bd, details);
+                return;
+            }
+
+            // --- 扉の有無と方向 ---
+            const doorOn = document.getElementById('doorToggle').checked;
+            const doorDir = document.querySelector('input[name="doorDir"]:checked')?.value || 'front';
+
+            // --- 筐体 ---
+            const boxDensity = getMatDensity('boxMat');
+            const boxThk = getThkVal('boxThk');
+            const boxMatName = getMatName('boxMat');
+            const boxUnitW = (boxThk * boxDensity).toFixed(2);
+
+            // 扉が前面のみ → 箱背面は残る、扉が前背面 → 箱前面・背面ともなし
+            const hasFront = !doorOn;
+            const hasBack = !(doorOn && doorDir === 'both');
+
+            const boxParts = [];
+            if (hasFront) boxParts.push({ label: '箱正面', w: W, h: H, count: 1 });
+            if (hasBack) boxParts.push({ label: '箱背面', w: W, h: H, count: 1 });
+            boxParts.push({ label: '箱側面', w: D, h: H, count: 2 });
+            boxParts.push({ label: '箱天井', w: W, h: D, count: 1 });
+            boxParts.push({ label: '箱底面', w: W, h: D, count: 1 });
+
+            boxParts.forEach(p => {
+                const wt = plateWeight(p.w, p.h, boxThk, boxDensity) * p.count;
+                bd.box += wt;
+                details.push(`${p.label}: (${p.w}×${p.h}) ÷ 10⁶ × ${boxUnitW}kg/m² × ${p.count} = ${wt.toFixed(2)}kg  [${boxMatName} t${boxThk}mm]`);
+            });
+
+            // --- 扉 ---
+            if (doorOn) {
+                const doorDensity = getMatDensity('doorMat');
+                const doorThk = getThkVal('doorThk');
+                const doorMatName = getMatName('doorMat');
+                const doorUnitW = (doorThk * doorDensity).toFixed(2);
+
+                const doorCount = doorDir === 'both' ? 2 : 1;
+                const labels = doorDir === 'both' ? ['扉前面', '扉背面'] : ['扉前面'];
+                labels.forEach(label => {
+                    const wt = plateWeight(W, H, doorThk, doorDensity);
+                    bd.door += wt;
+                    details.push(`${label}: (${W}×${H}) ÷ 10⁶ × ${doorUnitW}kg/m² = ${wt.toFixed(2)}kg  [${doorMatName} t${doorThk}mm]`);
+                });
+            }
+
+            // --- ベース ---
+            if (document.getElementById('baseToggle').checked) {
+                const baseH = parseFloat(document.getElementById('baseH').value) || 0;
+                if (baseH > 0) {
+                    const baseDensity = getMatDensity('baseMat');
+                    const baseThk = getThkVal('baseThk');
+                    const baseMatName = getMatName('baseMat');
+                    const baseUnitW = (baseThk * baseDensity).toFixed(2);
+
+                    const baseParts = [
+                        { label: 'ベース正面', w: W, h: baseH, count: 1 },
+                        { label: 'ベース背面', w: W, h: baseH, count: 1 },
+                        { label: 'ベース側面', w: D, h: baseH, count: 2 },
+                    ];
+                    baseParts.forEach(p => {
+                        const wt = plateWeight(p.w, p.h, baseThk, baseDensity) * p.count;
+                        bd.base += wt;
+                        details.push(`${p.label}: (${p.w}×${p.h}) ÷ 10⁶ × ${baseUnitW}kg/m² × ${p.count} = ${wt.toFixed(2)}kg  [${baseMatName} t${baseThk}mm]`);
+                    });
+                }
+            }
+
+            // --- 仕切り板 ---
+            if (document.getElementById('midToggle').checked) {
+                const midCount = parseInt(document.getElementById('midCount').value) || 0;
+                if (midCount > 0) {
+                    const midDensity = getMatDensity('midMat');
+                    const midThk = getThkVal('midThk');
+                    const midMatName = getMatName('midMat');
+                    const midUnitW = (midThk * midDensity).toFixed(2);
+
+                    const wt = plateWeight(W, D, midThk, midDensity) * midCount;
+                    bd.mid = wt;
+                    details.push(`仕切り板: (${W}×${D}) ÷ 10⁶ × ${midUnitW}kg/m² × ${midCount}枚 = ${wt.toFixed(2)}kg  [${midMatName} t${midThk}mm]`);
+                }
+            }
+
+            // --- 中板（機器取付板）: 最大5枚・個別サイズ ---
+            if (document.getElementById('equipToggle').checked) {
+                document.querySelectorAll('#equipContainer .equip-item').forEach((row, idx) => {
+                    const custW = parseFloat(row.querySelector('.equip-w')?.value);
+                    const custH = parseFloat(row.querySelector('.equip-h')?.value);
+                    const eW = (custW > 0) ? custW : Math.max(W - 100, 0);
+                    const eH = (custH > 0) ? custH : Math.max(H - 100, 0);
+                    const matSel = row.querySelector('.equip-mat');
+                    const thkSel = row.querySelector('.equip-thk');
+                    const matKey = matSel?.value || 'SPCC';
+                    const density = MATERIALS[matKey]?.density || 7.85;
+                    const thk = parseFloat(thkSel?.value) || 2.3;
+                    const matName = MATERIALS[matKey]?.name || matKey;
+                    const unitW = (thk * density).toFixed(2);
+                    const isCustom = (custW > 0 || custH > 0);
+                    const wt = plateWeight(eW, eH, thk, density);
+                    bd.equip += wt;
+                    const sizeNote = isCustom ? '' : ' [外形−100]';
+                    details.push(`中板${idx + 1}: (${eW}×${eH})${sizeNote} ÷ 10⁶ × ${unitW}kg/m² = ${wt.toFixed(2)}kg  [${matName} t${thk}mm]`);
+                });
+            }
+
+            // 寸法表示を動的更新
+            updateDimensionHints(W, H, D);
+
+            // --- 屋根 ---
+            const hasRoof = document.querySelector('input[name="envRoof"]:checked')?.value === 'roof';
+            if (hasRoof) {
+                const roofHt = parseFloat(document.getElementById('roofH').value) || 0;
+                if (roofHt > 0) {
+                    const roofDensity = getMatDensity('roofMat');
+                    const roofThk = getThkVal('roofThk');
+                    const roofMatName = getMatName('roofMat');
+                    const roofUnitW = (roofThk * roofDensity).toFixed(2);
+
+                    const roofParts = [
+                        { label: '屋根前面', w: W, h: roofHt, count: 1 },
+                        { label: '屋根側面', w: D, h: roofHt, count: 2 },
+                        { label: '屋根上面', w: W, h: D, count: 1 },
+                    ];
+                    roofParts.forEach(p => {
+                        const wt = plateWeight(p.w, p.h, roofThk, roofDensity) * p.count;
+                        bd.roof += wt;
+                        details.push(`${p.label}: (${p.w}×${p.h}) ÷ 10⁶ × ${roofUnitW}kg/m² × ${p.count} = ${wt.toFixed(2)}kg  [${roofMatName} t${roofThk}mm]`);
+                    });
+                }
+            }
+
+            // --- フレーム材 ---
+            document.querySelectorAll('#frameContainer .frame-item').forEach(row => {
+                const len = parseFloat(row.querySelector('.frame-len')?.value) || 0;
+                const unitW = parseFloat(row.querySelector('.frame-unit-w')?.value) || 0;
+                const count = parseInt(row.querySelector('.frame-count')?.value) || 1;
+                const name = row.querySelector('.frame-sel option:checked')?.textContent || 'フレーム';
+                if (len > 0 && unitW > 0) {
+                    const wt = len * unitW * count;
+                    bd.frame += wt;
+                    details.push(`フレーム(${name}): ${len}m × ${unitW}kg/m × ${count}本 = ${wt.toFixed(2)}kg`);
+                }
+            });
+
+            // --- 部品配材 ---
+            const partsKg = parseFloat(document.getElementById('partsKg').value) || 0;
+            if (partsKg > 0) {
+                bd.parts = partsKg;
+                details.push(`部品配材: ${partsKg.toFixed(2)}kg`);
+            }
+
+            updateUI(bd, details);
+        }
+
+        function updateUI(bd, details) {
+            const total = Object.values(bd).reduce((s, v) => s + v, 0);
+            document.getElementById('totalVal').textContent = total.toFixed(1);
+
+            const keys = ['box', 'door', 'base', 'mid', 'equip', 'roof', 'frame', 'parts'];
+            const ids = ['bdBox', 'bdDoor', 'bdBase', 'bdMid', 'bdEquip', 'bdRoof', 'bdFrame', 'bdParts'];
+            const bars = ['barBox', 'barDoor', 'barBase', 'barMid', 'barEquip', 'barRoof', 'barFrame', 'barParts'];
+
+            keys.forEach((k, i) => {
+                document.getElementById(ids[i]).textContent = bd[k].toFixed(1) + ' kg';
+                const pct = total > 0 ? (bd[k] / total * 100) : 0;
+                const barEl = document.getElementById(bars[i]);
+                if (barEl) barEl.style.width = pct.toFixed(1) + '%';
+            });
+
+            // 扉構造説明の動的更新
+            updateDoorStructureHint();
+
+            const detailEl = document.getElementById('detailLines');
+            if (details.length > 0) {
+                detailEl.innerHTML = details.map(d => `<div>${d}</div>`).join('');
+            } else {
+                detailEl.textContent = '寸法を入力すると計算詳細が表示されます';
+            }
+        }
+
+        // 扉の構造説明テキストを動的更新
+        function updateDoorStructureHint() {
+            const doorOn = document.getElementById('doorToggle').checked;
+            const doorDir = document.querySelector('input[name="doorDir"]:checked')?.value || 'front';
+            const hintEl = document.getElementById('doorStructureText');
+            const doorCard = document.getElementById('doorCard');
+
+            if (!doorOn) {
+                if (doorCard) doorCard.classList.add('section-off');
+                if (hintEl) hintEl.innerHTML = '扉OFF → 筐体: 正面+背面+側面×2+天井+底面 (<strong>合計6面</strong>)';
+                return;
+            }
+            if (doorCard) doorCard.classList.remove('section-off');
+
+            if (doorDir === 'front') {
+                if (hintEl) hintEl.innerHTML = '筐体: 背面+側面×2+天井+底面 (5面) ＋ 扉: 前面 (1面) = <strong>合計6面</strong>';
+            } else {
+                if (hintEl) hintEl.innerHTML = '筐体: 側面×2+天井+底面 (4面) ＋ 扉: 前面+背面 (2面) = <strong>合計6面</strong>';
+            }
+        }
+
+
+        // 仕切り板の寸法ヒントを動的更新
+        function updateDimensionHints(W, H, D) {
+            const midEl = document.getElementById('midDimText');
+            if (W > 0 && D > 0 && midEl) {
+                midEl.textContent = W + ' \u00d7 ' + D + ' mm';
+            } else if (midEl) {
+                midEl.textContent = 'W \u00d7 D';
+            }
+
+        }
+
+        /* ==========================================
+           リセット
+           ========================================== */
+        function resetAll() {
+            document.getElementById('dimW').value = '';
+            document.getElementById('dimH').value = '';
+            document.getElementById('dimD').value = '';
+
+            // ラジオボタンリセット
+            document.querySelector('input[name="envPlace"][value="indoor"]').checked = true;
+            document.querySelector('input[name="envRoof"][value="none"]').checked = true;
+            document.getElementById('roofCard').style.display = 'none';
+            document.querySelector('input[name="doorDir"][value="front"]').checked = true;
+
+            // トグルリセット
+            document.getElementById('doorToggle').checked = true;
+            document.getElementById('doorBody').classList.remove('hidden');
+            document.getElementById('baseToggle').checked = false;
+            document.getElementById('baseBody').classList.add('hidden');
+            document.getElementById('midToggle').checked = false;
+            document.getElementById('midBody').classList.add('hidden');
+            document.getElementById('equipToggle').checked = false;
+            document.getElementById('equipBody').classList.add('hidden');
+
+            document.getElementById('baseH').value = '100';
+            document.getElementById('midCount').value = '1';
+            document.getElementById('roofH').value = '150';
+            document.getElementById('partsKg').value = '0';
+
+            // フレーム材・中板クリア
+            document.getElementById('frameContainer').innerHTML = '';
+            document.getElementById('equipContainer').innerHTML = '';
+            equipRowCount = 0;
+
+            // 全材質・板厚セレクタを再初期化
+            const pairs = [
+                ['boxMat', 'boxThk', '1.6'], ['doorMat', 'doorThk', '1.6'],
+                ['baseMat', 'baseThk', '2.3'], ['midMat', 'midThk', '1.6'],
+                ['roofMat', 'roofThk', '1.6'],
+            ];
+            pairs.forEach(([m, t, d]) => initMatThkPair(m, t, d));
+
+            // フレーム材・中板を初期行で再追加
+            addFrameRow();
+            addEquipRow();
+
+            calculate();
+        }
+
+        /* ==========================================
+           初期化
+           ========================================== */
+        document.addEventListener('DOMContentLoaded', () => {
+            // 材質・板厚セレクタ初期化
+            initMatThkPair('boxMat', 'boxThk', '1.6');
+            initMatThkPair('doorMat', 'doorThk', '1.6');
+            initMatThkPair('baseMat', 'baseThk', '2.3');
+            initMatThkPair('midMat', 'midThk', '1.6');
+            initMatThkPair('roofMat', 'roofThk', '1.6');
+
+            // トグル制御
+            setupToggle('doorToggle', 'doorBody');
+            setupToggle('baseToggle', 'baseBody');
+            setupToggle('midToggle', 'midBody');
+            setupToggle('equipToggle', 'equipBody');
+            setupRoofVisibility();
+
+            // リアルタイム計算
+            document.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('input', calculate);
+                el.addEventListener('change', calculate);
+            });
+
+            // フレーム材1行追加
+            addFrameRow();
+            addEquipRow();
+
+            calculate();
+        });
+    </script>
+</body>
+
+</html>
