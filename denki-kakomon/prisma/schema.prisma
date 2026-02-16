@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Visitor {
+  id           String       @id @default(uuid())
+  fingerprint  String?
+  recoveryCode String?      @unique
+  createdAt    DateTime     @default(now())
+  lastAccessAt DateTime     @updatedAt
+  progress     Progress[]
+  examResults  ExamResult[]
+}
+
+model Question {
+  id                String   @id // "A1-2024-KA-Q01"
+  qualificationId   String
+  qualificationName String
+  subjectId         String
+  subjectName       String
+  year              Int
+  session           String
+  questionNumber    Int
+  questionText      String
+  questionImages    String   @default("[]") // JSON array of QuestionImage
+  choices           String // JSON array of choices
+  correctAnswer     String
+  explanation       String // JSON of ExplanationBlock
+  difficulty        Int
+  category          String
+  tags              String   @default("[]") // JSON array
+  source            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([qualificationId])
+  @@index([qualificationId, year])
+  @@index([qualificationId, subjectId])
+  @@index([qualificationId, year, session])
+}
+
+model Progress {
+  id             String   @id @default(uuid())
+  visitorId      String
+  questionId     String
+  selectedAnswer String
+  isCorrect      Boolean
+  attemptCount   Int      @default(1)
+  timeSpent      Int      @default(0) // seconds
+  bookmarked     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  visitor Visitor @relation(fields: [visitorId], references: [id])
+
+  @@unique([visitorId, questionId])
+  @@index([visitorId])
+  @@index([questionId])
+}
+
+model ExamResult {
+  id              String   @id @default(uuid())
+  visitorId       String
+  qualificationId String
+  subjectId       String?
+  year            Int?
+  totalQuestions  Int
+  correctCount    Int
+  accuracy        Float
+  timeTaken       Int // seconds
+  answers         String // JSON array of answer details
+  completedAt     DateTime @default(now())
+
+  visitor Visitor @relation(fields: [visitorId], references: [id])
+
+  @@index([visitorId])
+  @@index([qualificationId])
+}
