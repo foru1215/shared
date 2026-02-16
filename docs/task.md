@@ -1,0 +1,8 @@
+- [x] Check remote repository status (git fetch) <!-- id: 0 -->
+- [x] Determine synchronization strategy (pull, push, or merge) <!-- id: 1 -->
+- [x] Execute synchronization (git checkout main) <!-- id: 2 -->
+- [x] Review and push local changes <!-- id: 3 -->
+- [x] Configure auto-sync on startup <!-- id: 4 -->
+- [x] Verify auto-sync and context portability <!-- id: 5 -->
+- [x] Rename 'my-app' to '0190myapp' <!-- id: 6 -->
+- [ ] Update documentation and resume instructions <!-- id: 7 -->
