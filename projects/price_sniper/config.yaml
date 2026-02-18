@@ -1,0 +1,25 @@
+scraping:
+  headless: true
+  min_sleep: 2.0
+  max_sleep: 5.0
+  max_retries: 3
+  timeout: 30
+
+arbitrage:
+  min_profit_yen: 1000
+  min_profit_percent: 15.0
+  amazon_fee_percent: 10.0
+  shipping_cost_yen: 500
+
+scheduler:
+  interval_minutes: 60
+  keywords:
+    - "Nintendo Switch"
+    - "PS5"
+    - "iPhone"
+
+notification:
+  backend: "none"
+
+logging:
+  level: "INFO"

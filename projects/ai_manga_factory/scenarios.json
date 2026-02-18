@@ -1,0 +1,40 @@
+{
+  "chapters": [
+    {
+      "name": "chapter_01",
+      "pages": [
+        {
+          "page": 1,
+          "panels": [
+            {
+              "positive_prompt": "manga style, masterpiece, best quality, 1girl reading book, library background, soft lighting",
+              "negative_prompt": "low quality, blurry, deformed, ugly, bad anatomy",
+              "seed": -1,
+              "width": 1024,
+              "height": 1024
+            },
+            {
+              "positive_prompt": "manga style, masterpiece, best quality, close-up face, surprised expression, sparkle eyes",
+              "negative_prompt": "low quality, blurry, deformed, ugly, bad anatomy",
+              "seed": -1,
+              "width": 768,
+              "height": 1024
+            }
+          ]
+        },
+        {
+          "page": 2,
+          "panels": [
+            {
+              "positive_prompt": "manga style, masterpiece, best quality, wide shot, city skyline, sunset, dramatic",
+              "negative_prompt": "low quality, blurry, deformed, ugly",
+              "seed": -1,
+              "width": 1024,
+              "height": 768
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

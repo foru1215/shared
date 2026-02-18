@@ -1,0 +1,15 @@
+[project]
+name = "ai-manga-factory"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.9",
+    "shared-lib",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project.scripts]
+manga-factory = "src.main_factory:main"

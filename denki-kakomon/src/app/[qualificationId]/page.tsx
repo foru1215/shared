@@ -8,6 +8,17 @@ import { notFound } from 'next/navigation';
 
 import { getQuestionCounts } from '@/data/questions';
 
+function getJapaneseYear(year: number): string {
+    if (year >= 2019) {
+        const reiwa = year - 2018;
+        return `令和${reiwa === 1 ? '元' : reiwa}`;
+    } else if (year >= 1989) {
+        return `平成${year - 1988}`;
+    } else {
+        return `昭和${year - 1925}`;
+    }
+}
+
 export default function QualificationPage({ params }: { params: Promise<{ qualificationId: string }> }) {
     const { qualificationId } = use(params);
     const qual = getQualification(qualificationId);
@@ -76,7 +87,7 @@ export default function QualificationPage({ params }: { params: Promise<{ qualif
                         {Object.entries(years).map(([year, count]) => (
                             <div key={year} className="glass-card p-4 flex items-center justify-between">
                                 <div>
-                                    <h3 className="font-bold">令和{parseInt(year) - 2018}年度 ({year}年)</h3>
+                                    <h3 className="font-bold">{getJapaneseYear(parseInt(year))}年度 ({year}年)</h3>
                                     <p className="text-xs text-text-secondary mt-1">{count}問収録</p>
                                 </div>
                                 <div className="flex gap-2">

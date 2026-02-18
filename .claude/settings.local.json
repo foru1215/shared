@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(npx --version:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(\"C:\\\\Users\\\\0190\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" --version)",
+      "Bash(where:*)",
+      "Bash(\"/c/Users/0190/AppData/Local/Programs/Python/Python313/python.exe\" --version)",
+      "Bash(cmd.exe /c:*)",
+      "Bash(powershell.exe -Command \"python --version; pip --version\")",
+      "Bash(powershell.exe -NoProfile -Command \"& ''C:\\\\Users\\\\0190\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe'' --version\")",
+      "Bash(git --version:*)",
+      "Bash(py --version)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(code:*)",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\0190\\\\shared\\\\industrial-anomaly-detection\\\\.git\")",
+      "Bash(cmd /c \"rmdir /s /q C:\\\\Users\\\\0190\\\\shared\\\\industrial-anomaly-detection\\\\.git\")",
+      "Bash(Test-Path \"C:\\\\Users\\\\0190\\\\shared\\\\industrial-anomaly-detection\\\\.git\")",
+      "Bash(git rm:*)",
+      "Bash(cmd /c:*)",
+      "Bash(git mv:*)"
+    ]
+  }
+}

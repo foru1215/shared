@@ -1,0 +1,35 @@
+video:
+  output_resolution: [1080, 1920]  # 9:16 vertical (width, height)
+  codec: "h264_nvenc"
+  audio_codec: "aac"
+  bitrate: "8M"
+  fps: 30
+
+tts:
+  backend: "voicevox"
+  voicevox_host: "127.0.0.1"
+  voicevox_port: 50021
+  voicevox_speaker_id: 0
+  gtts_lang: "ja"
+
+subtitles:
+  format: "ass"
+  font: "Noto Sans JP"
+  font_size: 48
+  primary_color: "&H00FFFFFF"
+  outline_color: "&H00000000"
+  outline_width: 3
+  position: "bottom"
+  margin_bottom: 80
+
+batch:
+  input_dir: "./assets/scripts"
+  background_dir: "./assets/backgrounds"
+  bgm_dir: "./assets/bgm"
+  output_dir: "./output"
+
+notification:
+  backend: "none"
+
+logging:
+  level: "INFO"

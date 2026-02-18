@@ -6,4 +6,4 @@
 - [x] Verify auto-sync and context portability <!-- id: 5 -->
 - [x] Rename 'my-app' to '0190myapp' <!-- id: 6 -->
 - [x] Update documentation and resume instructions <!-- id: 7 -->
-- [ ] Implement smart project management rules <!-- id: 8 -->
+- [x] Implement smart project management rules <!-- id: 8 -->

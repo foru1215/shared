@@ -1,0 +1,18 @@
+comfyui:
+  host: "127.0.0.1"
+  port: 8188
+  output_dir: "./output"
+  max_concurrent_jobs: 2
+
+workflow:
+  default_template: "workflow_template.json"
+  default_seed: -1  # -1 = random
+
+naming:
+  pattern: "page{page:03d}_panel{panel:02d}.png"
+
+notification:
+  backend: "none"
+
+logging:
+  level: "INFO"

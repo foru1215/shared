@@ -6,23 +6,34 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const QUALIFICATIONS = [
-  { id: 'A1', name: '第二種電気工事士', subject: 'written', subjectName: '筆記試験' },
-  { id: 'A2', name: '第一種電気工事士', subject: 'written', subjectName: '筆記試験' },
-  { id: 'B1', name: '2級電気工事施工管理技士', subject: 'first', subjectName: '第一次検定' },
-  { id: 'B2', name: '1級電気工事施工管理技士', subject: 'first', subjectName: '第一次検定' },
-  { id: 'C1', name: '第三種電気主任技術者', subject: 'theory', subjectName: '理論' },
-  { id: 'C2', name: '第二種電気主任技術者', subject: 'theory', subjectName: '理論' },
-  { id: 'C3', name: '第一種電気主任技術者', subject: 'theory', subjectName: '理論' },
-  { id: 'D1', name: 'アナログ通信', subject: 'basic', subjectName: '基礎' },
-  { id: 'D2', name: 'デジタル通信', subject: 'basic', subjectName: '基礎' },
-  { id: 'D3', name: '総合通信', subject: 'basic', subjectName: '基礎' },
-  { id: 'E1', name: '伝送交換主任技術者', subject: 'system', subjectName: '電気通信システム' },
-  { id: 'E2', name: '線路主任技術者', subject: 'system', subjectName: '電気通信システム' },
-  { id: 'F3', name: '消防設備士', subject: 'law', subjectName: '法令' },
-  { id: 'F5', name: 'エネルギー管理士', subject: 'general', subjectName: '必須基礎' },
+  {
+    id: 'A1', name: '第二種電気工事士',
+    configs: [{ subject: 'written', name: '筆記試験', count: 50 }]
+  },
+  {
+    id: 'A2', name: '第一種電気工事士',
+    configs: [{ subject: 'written', name: '筆記試験', count: 50 }]
+  },
+  {
+    id: 'B1', name: '2級電気工事施工管理技士',
+    configs: [{ subject: 'first', name: '第一次検定', count: 64 }]
+  },
+  {
+    id: 'B2', name: '1級電気工事施工管理技士',
+    configs: [{ subject: 'first', name: '第一次検定', count: 92 }]
+  },
+  {
+    id: 'C1', name: '第三種電気主任技術者',
+    configs: [
+      { subject: 'theory', name: '理論', count: 20 },
+      { subject: 'power', name: '電力', count: 20 },
+      { subject: 'machine', name: '機械', count: 20 },
+      { subject: 'law', name: '法規', count: 20 }
+    ]
+  },
 ];
 
-const YEARS = Array.from({ length: 10 }, (_, i) => 2024 - i); // 2024 to 2015
+const YEARS = [2024, 2023];
 
 const QUESTIONS_DIR = path.join(__dirname, '../src/data/questions');
 
@@ -32,177 +43,101 @@ if (!fs.existsSync(QUESTIONS_DIR)) {
 }
 
 function generateQuestionContent(qual, year) {
+  let questions = [];
+  const categoriesMap = {
+    'A1': ['一般問題', '配線図', '鑑別'],
+    'A2': ['理論', '電力', '機械', '法規', '一般問題', '配線図'],
+    'B1': ['電気工学', '施工管理', '法規'],
+    'B2': ['電気工学', '施工管理', '法規'],
+    'C1': ['理論', '電力', '機械', '法規']
+  };
+
+  let globalQNum = 1;
+
+  for (const config of qual.configs) {
+    for (let i = 1; i <= config.count; i++) {
+      const qIdNum = String(globalQNum).padStart(3, '0');
+      // Simple category assignment
+      const cats = categoriesMap[qual.id] || ['一般'];
+      const category = cats[Math.floor(Math.random() * cats.length)];
+
+      // For C1, category should match subject
+      let actualCategory = category;
+      if (qual.id === 'C1') {
+        actualCategory = config.name;
+      }
+
+      // For B1, B2, adjust categories based on question number ranges (approx)
+      if (qual.id.startsWith('B')) {
+        if (i <= 20) actualCategory = '電気工学';
+        else if (i <= 40) actualCategory = '施工管理';
+        else actualCategory = '法規';
+      }
+
+      questions.push(`  {
+    id: '${qual.id}-${year}-Q${qIdNum}',
+    qualificationId: '${qual.id}',
+    qualificationName: '${qual.name}',
+    subjectId: '${config.subject}',
+    subjectName: '${config.name}',
+    year: ${year},
+    session: '上期',
+    questionNumber: ${globalQNum},
+    questionText: '${year}年度 ${qual.name} (${config.name}) 問${i}\\n（再現データ・構成調整済み）\\n科目: ${config.name}\\n分野: ${actualCategory}',
+    questionImages: [],
+    choices: [
+      { label: 'イ', text: '選択肢イ' },
+      { label: 'ロ', text: '選択肢ロ' },
+      { label: 'ハ', text: '選択肢ハ' },
+      { label: 'ニ', text: '選択肢ニ' },
+    ],
+    correctAnswer: '${['イ', 'ロ', 'ハ', 'ニ'][Math.floor(Math.random() * 4)]}',
+    explanation: {
+      summary: '正解は「' + ['イ', 'ロ', 'ハ', 'ニ'][Math.floor(Math.random() * 4)] + '」です。',
+      detailedText: '詳細な解説がここに入ります（準備中）。',
+      images: [],
+      keyPoints: [],
+      relatedQuestions: [],
+      references: [],
+    },
+    difficulty: ${Math.floor(Math.random() * 3) + 1},
+    category: '${actualCategory}',
+    tags: ['構成調整済'],
+    source: '再現データ',
+    createdAt: '2024-01-01',
+    updatedAt: '2024-01-01',
+  },`);
+      globalQNum++;
+    }
+  }
+
   const code = `import type { Question } from '@/types/question';
 
 export const ${qual.id}_${year}: Question[] = [
-  {
-    id: '${qual.id}-${year}-Q01',
-    qualificationId: '${qual.id}',
-    qualificationName: '${qual.name}',
-    subjectId: '${qual.subject}',
-    subjectName: '${qual.subjectName}',
-    year: ${year},
-    session: '上期',
-    questionNumber: 1,
-    questionText: '${year}年度 ${qual.name} (${qual.subjectName}) 問1\\nこれは過去問題のサンプルテキストです。実際の問題文はここに表示されます。',
-    questionImages: [],
-    choices: [
-      { label: 'イ', text: '50 [A]' },
-      { label: 'ロ', text: '75 [A]' },
-      { label: 'ハ', text: '100 [A]' },
-      { label: 'ニ', text: '125 [A]' },
-    ],
-    correctAnswer: 'ロ',
-    explanation: {
-      summary: 'この問題の正解は「ロ」です。',
-      detailedText: '詳細な解説がここに入ります。\\n\\n計算式などのMarkdownも使用可能です。\\n$V = IR$',
-      images: [],
-      keyPoints: ['オームの法則', 'キルヒホッフの法則'],
-      relatedQuestions: [],
-      references: [],
-    },
-    difficulty: 3,
-    category: '一般問題',
-    tags: ['サンプル'],
-    source: 'サンプル問題集',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
-  },
-  {
-    id: '${qual.id}-${year}-Q02',
-    qualificationId: '${qual.id}',
-    qualificationName: '${qual.name}',
-    subjectId: '${qual.subject}',
-    subjectName: '${qual.subjectName}',
-    year: ${year},
-    session: '上期',
-    questionNumber: 2,
-    questionText: '${year}年度 ${qual.name} 問2\\n次の記述のうち、正しいものはどれか。',
-    questionImages: [],
-    choices: [
-      { label: 'イ', text: '選択肢1' },
-      { label: 'ロ', text: '選択肢2' },
-      { label: 'ハ', text: '選択肢3' },
-      { label: 'ニ', text: '選択肢4' },
-    ],
-    correctAnswer: 'イ',
-    explanation: {
-      summary: '正解は「イ」です。',
-      detailedText: '解説文です。',
-      images: [],
-      keyPoints: [],
-      relatedQuestions: [],
-      references: [],
-    },
-    difficulty: 2,
-    category: '法令',
-    tags: [],
-    source: 'サンプル問題集',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
-  },
-  {
-    id: '${qual.id}-${year}-Q03',
-    qualificationId: '${qual.id}',
-    qualificationName: '${qual.name}',
-    subjectId: '${qual.subject}',
-    subjectName: '${qual.subjectName}',
-    year: ${year},
-    session: '上期',
-    questionNumber: 3,
-    questionText: '${year}年度 ${qual.name} 問3\\n計算問題のサンプルです。',
-    questionImages: [],
-    choices: [
-      { label: 'イ', text: '100 [V]' },
-      { label: 'ロ', text: '200 [V]' },
-      { label: 'ハ', text: '300 [V]' },
-      { label: 'ニ', text: '400 [V]' },
-    ],
-    correctAnswer: 'ハ',
-    explanation: {
-      summary: '正解は「ハ」です。',
-      detailedText: '解説文です。',
-      images: [],
-      keyPoints: [],
-      relatedQuestions: [],
-      references: [],
-    },
-    difficulty: 4,
-    category: '計算',
-    tags: [],
-    source: 'サンプル問題集',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
-  },
-  {
-    id: '${qual.id}-${year}-Q04',
-    qualificationId: '${qual.id}',
-    qualificationName: '${qual.name}',
-    subjectId: '${qual.subject}',
-    subjectName: '${qual.subjectName}',
-    year: ${year},
-    session: '上期',
-    questionNumber: 4,
-    questionText: '${year}年度 ${qual.name} 問4\\n図記号に関する問題です。',
-    questionImages: [],
-    choices: [
-      { label: 'イ', text: 'コンセント' },
-      { label: 'ロ', text: 'スイッチ' },
-      { label: 'ハ', text: 'パイロットランプ' },
-      { label: 'ニ', text: '接地端子' },
-    ],
-    correctAnswer: 'ニ',
-    explanation: {
-      summary: '正解は「ニ」です。',
-      detailedText: '解説文です。',
-      images: [],
-      keyPoints: [],
-      relatedQuestions: [],
-      references: [],
-    },
-    difficulty: 1,
-    category: '鑑別',
-    tags: [],
-    source: 'サンプル問題集',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
-  },
-  {
-    id: '${qual.id}-${year}-Q05',
-    qualificationId: '${qual.id}',
-    qualificationName: '${qual.name}',
-    subjectId: '${qual.subject}',
-    subjectName: '${qual.subjectName}',
-    year: ${year},
-    session: '上期',
-    questionNumber: 5,
-    questionText: '${year}年度 ${qual.name} 問5\\n配線設計に関する問題です。',
-    questionImages: [],
-    choices: [
-      { label: 'イ', text: '1.6mm' },
-      { label: 'ロ', text: '2.0mm' },
-      { label: 'ハ', text: '2.6mm' },
-      { label: 'ニ', text: '3.2mm' },
-    ],
-    correctAnswer: 'ロ',
-    explanation: {
-      summary: '正解は「ロ」です。',
-      detailedText: '解説文です。',
-      images: [],
-      keyPoints: [],
-      relatedQuestions: [],
-      references: [],
-    },
-    difficulty: 2,
-    category: '配線設計',
-    tags: [],
-    source: 'サンプル問題集',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
-  },
+${questions.join('\n')}
 ];
 `;
   return code;
+}
+
+// Cleanup Old Files
+console.log('Cleaning up old files...');
+for (const qual of QUALIFICATIONS) {
+  const qualDir = path.join(QUESTIONS_DIR, qual.id);
+  if (fs.existsSync(qualDir)) {
+    const files = fs.readdirSync(qualDir);
+    for (const file of files) {
+      if (!file.endsWith('.ts')) continue;
+      const yearMatch = file.match(/^(\d{4})\.ts$/);
+      if (yearMatch) {
+        const year = parseInt(yearMatch[1], 10);
+        if (!YEARS.includes(year)) {
+          fs.unlinkSync(path.join(qualDir, file));
+          console.log(`Deleted: ${qual.id}/${file}`);
+        }
+      }
+    }
+  }
 }
 
 // Generate Question Files
@@ -225,15 +160,43 @@ for (const qual of QUALIFICATIONS) {
       continue;
     }
 
-    // Skip A1/2023 because it has manually corrected data (5 real questions)
-    // We will handle it separately or keep it as is for now
+    // Skip A1/2023 because it has manually corrected data
     if (qual.id === 'A1' && year === 2023 && fs.existsSync(filePath)) {
       console.log(`Skipping A1/2023 file to preserve manual edits: ${qual.id}/${year}.ts`);
       skippedFiles++;
       continue;
     }
 
-    // For other years, overwrite (to fix issues like missing source field)
+    // Skip A2/2023 because it has manually corrected data (Partially recreated)
+    if (qual.id === 'A2' && year === 2023 && fs.existsSync(filePath)) {
+      console.log(`Skipping A2/2023 file to preserve manual edits: ${qual.id}/${year}.ts`);
+      skippedFiles++;
+      continue;
+    }
+
+    // Skip B1/2023
+    if (qual.id === 'B1' && year === 2023 && fs.existsSync(filePath)) {
+      console.log(`Skipping B1/2023 file to preserve manual edits: ${qual.id}/${year}.ts`);
+      skippedFiles++;
+      continue;
+    }
+
+    // Skip B2/2023
+    if (qual.id === 'B2' && year === 2023 && fs.existsSync(filePath)) {
+      console.log(`Skipping B2/2023 file to preserve manual edits: ${qual.id}/${year}.ts`);
+      skippedFiles++;
+      continue;
+    }
+
+    // Skip C1/2023
+    if (qual.id === 'C1' && year === 2023 && fs.existsSync(filePath)) {
+      console.log(`Skipping C1/2023 file to preserve manual edits: ${qual.id}/${year}.ts`);
+      skippedFiles++;
+      continue;
+    }
+
+
+    // For other years, overwrite
     const content = generateQuestionContent(qual, year);
     fs.writeFileSync(filePath, content, 'utf8');
     if (fs.existsSync(filePath)) {
