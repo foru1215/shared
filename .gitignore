@@ -1,0 +1,8 @@
+nul
+*.pyc
+__pycache__/
+node_modules/
+.env
+dist/
+build/
+auto_save_log.txt
