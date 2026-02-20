@@ -33,7 +33,13 @@
       "Bash(Test-Path \"C:\\\\Users\\\\0190\\\\shared\\\\industrial-anomaly-detection\\\\.git\")",
       "Bash(git rm:*)",
       "Bash(cmd /c:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(schtasks:*)",
+      "Bash(Unregister-ScheduledTask -TaskName \"SharedRepo_ShutdownPush\" -Confirm:$false)",
+      "Bash(powershell -Command 'Get-ScheduledTask | Where-Object {$_.TaskName -like \"\"*sync*\"\" -or $_.TaskName -like \"\"*save*\"\" -or $_.TaskName -like \"\"*shutdown*\"\" -or $_.TaskName -like \"\"*shared*\"\"} | Format-Table TaskName, State')",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\0190\\\\shared\\\\register_shutdown_task.ps1\")",
+      "Bash(powershell -Command '[System.IO.File]::WriteAllText\\(\"\"C:\\\\Users\\\\0190\\\\shared\\\\register_shutdown_task.ps1\"\", \\(Get-Content \"\"C:\\\\Users\\\\0190\\\\shared\\\\register_shutdown_task.ps1\"\" -Raw -Encoding UTF8\\), [System.Text.UTF8Encoding]::new\\($true\\)\\)')",
+      "Bash(powershell -Command:*)"
     ]
   }
 }
