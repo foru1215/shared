@@ -2,7 +2,7 @@
 # 管理者権限不要（ユーザータスクとして登録）
 
 $taskName = "SharedRepo_ShutdownPush"
-$scriptPath = "C:\Users\0190\shared\auto_save.ps1"
+$scriptPath = "C:\Users\0190\shared\04_Scripts_Env\Scripts\PowerShell\auto_save.ps1"
 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
     -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptPath`""

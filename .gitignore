@@ -6,3 +6,4 @@ node_modules/
 dist/
 build/
 auto_save_log.txt
+.next/

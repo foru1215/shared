@@ -1,6 +1,6 @@
 ﻿# 起動時 + 1時間ごとの定期同期タスクを登録
 $taskName = "SharedRepo_StartupPull"
-$scriptPath = "C:\Users\0190\shared\auto_save.ps1"
+$scriptPath = "C:\Users\0190\shared\04_Scripts_Env\Scripts\PowerShell\auto_save.ps1"
 
 # 既存タスクを削除
 Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue

@@ -119,7 +119,7 @@ echo === STEP 4/5: 自動同期タスク登録 ===
 
 echo    [4a] 起動時 + 1時間ごとの同期...
 powershell -ExecutionPolicy Bypass -Command ^
-  "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -WindowStyle Hidden -File \"%REPO_DIR%\auto_save.ps1\"'; ^
+  "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -WindowStyle Hidden -File \"%REPO_DIR%\04_Scripts_Env\Scripts\PowerShell\auto_save.ps1\"'; ^
    $trigger = New-ScheduledTaskTrigger -AtLogOn; ^
    $trigger.Repetition = (New-ScheduledTaskTrigger -Once -At '00:00' -RepetitionInterval (New-TimeSpan -Hours 1)).Repetition; ^
    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -StartWhenAvailable; ^
@@ -128,7 +128,7 @@ powershell -ExecutionPolicy Bypass -Command ^
 
 echo    [4b] シャットダウン時の同期...
 powershell -ExecutionPolicy Bypass -Command ^
-  "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -WindowStyle Hidden -File \"%REPO_DIR%\auto_save.ps1\"'; ^
+  "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -WindowStyle Hidden -File \"%REPO_DIR%\04_Scripts_Env\Scripts\PowerShell\auto_save.ps1\"'; ^
    $class = Get-CimClass -ClassName MSFT_TaskEventTrigger -Namespace Root/Microsoft/Windows/TaskScheduler; ^
    $trigger = New-CimInstance -CimClass $class -ClientOnly; ^
    $trigger.Subscription = '<QueryList><Query Id=\"0\" Path=\"System\"><Select Path=\"System\">*[System[Provider[@Name=\"User32\"] and EventID=1074]]</Select></Query></QueryList>'; ^
@@ -147,7 +147,7 @@ powershell -ExecutionPolicy Bypass -Command ^
   "$ws = New-Object -ComObject WScript.Shell; ^
    $s = $ws.CreateShortcut(\"$env:USERPROFILE\Desktop\push.lnk\"); ^
    $s.TargetPath = 'powershell.exe'; ^
-   $s.Arguments = '-ExecutionPolicy Bypass -File \"%REPO_DIR%\push.ps1\"'; ^
+   $s.Arguments = '-ExecutionPolicy Bypass -File \"%REPO_DIR%\04_Scripts_Env\Scripts\PowerShell\push.ps1\"'; ^
    $s.WorkingDirectory = '%REPO_DIR%'; ^
    $s.IconLocation = 'powershell.exe,0'; ^
    $s.Description = 'GitHubに保存'; ^
