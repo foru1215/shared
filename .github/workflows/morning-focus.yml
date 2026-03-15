@@ -30,118 +30,56 @@ jobs:
             const days  = ['日','月','火','水','木','金','土'];
             const dayName = days[jst.getUTCDay()];
 
-            // --- GitHub Project 定数 ---
-            const projectId      = "PVT_kwHOD5C6os4BRuWs";
-            const statusFieldId  = "PVTSSF_lAHOD5C6os4BRuWszg_d-e4";
-            const startFieldId   = "PVTF_lAHOD5C6os4BRuWszg_egfc";
-            const endFieldId     = "PVTF_lAHOD5C6os4BRuWszg_egfg";
-            const taskTypeFieldId= "PVTSSF_lAHOD5C6os4BRuWszg_d-lI";
+            // --- Issues REST API でアクティブ Issue を取得 ---
+            // Projects v2 GraphQL は user-level project スコープが必要なため REST にフォールバック
+            const perPage = 100;
+            let page = 1;
+            let allIssues = [];
 
-            // --- 全アイテム取得 ---
-            let allItems = [];
-            let cursor   = null;
-            let hasNext  = true;
-
-            while (hasNext) {
-              const afterClause = cursor ? `, after: "${cursor}"` : '';
-              const query = `query {
-                node(id: "${projectId}") {
-                  ... on ProjectV2 {
-                    items(first: 100${afterClause}) {
-                      pageInfo { hasNextPage endCursor }
-                      nodes {
-                        fieldValues(first: 20) {
-                          nodes {
-                            ... on ProjectV2ItemFieldDateValue {
-                              date
-                              field { ... on ProjectV2Field { id } }
-                            }
-                            ... on ProjectV2ItemFieldSingleSelectValue {
-                              name
-                              field { ... on ProjectV2SingleSelectField { id } }
-                            }
-                          }
-                        }
-                        content {
-                          ... on Issue {
-                            number
-                            title
-                            state
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }`;
-
-              const result = await github.graphql(query);
-              allItems = allItems.concat(result.node.items.nodes);
-              hasNext  = result.node.items.pageInfo.hasNextPage;
-              cursor   = result.node.items.pageInfo.endCursor;
+            while (true) {
+              const resp = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                state: 'open',
+                per_page: perPage,
+                page,
+              });
+              allIssues = allIssues.concat(resp.data);
+              if (resp.data.length < perPage) break;
+              page++;
             }
 
             // --- アイテム分類 ---
-            const todayDate    = new Date(`${todayStr}T00:00:00`);
-            let   phaseItem    = null;
-            const winItems     = [];
-            const inProgress   = [];
-            const todoItems    = [];
+            const labelNames = (issue) => issue.labels.map(l => l.name);
 
-            for (const item of allItems) {
-              if (!item.content || item.content.state !== 'OPEN') continue;
+            const phaseCards    = [];
+            const winConditions = [];
+            const p0Issues      = [];
 
-              let status    = null;
-              let startDate = null;
-              let endDate   = null;
-              let taskType  = null;
+            for (const issue of allIssues) {
+              const title  = issue.title;
+              const labels = labelNames(issue);
 
-              for (const fv of item.fieldValues.nodes) {
-                if (!fv.field) continue;
-                const fid = fv.field.id;
-                if (fid === statusFieldId)   status    = fv.name;
-                if (fid === startFieldId)    startDate = fv.date;
-                if (fid === endFieldId)      endDate   = fv.date;
-                if (fid === taskTypeFieldId) taskType  = fv.name;
-              }
-
-              if (status === 'Done' || status === 'Deferred') continue;
-
-              const title  = item.content.title;
-              const number = item.content.number;
-
-              // 今日が active window に入っているか確認
-              const isActiveToday = (() => {
-                if (!startDate || !endDate) return false;
-                const s = new Date(`${startDate}T00:00:00`);
-                const e = new Date(`${endDate}T00:00:00`);
-                return todayDate >= s && todayDate <= e;
-              })();
-
-              // Phase Card（今のフェーズ）
-              if (taskType === 'Phase Card' && isActiveToday) {
-                phaseItem = { title, number };
-              }
-
-              // Win Condition（勝ち条件）
-              if (taskType === 'Win Condition' && (status === 'Todo' || status === 'In Progress') && isActiveToday) {
-                winItems.push({ title, number, status });
-              }
-
-              // In Progress
-              if (status === 'In Progress') {
-                inProgress.push({ title, number });
-              }
-
-              // Todo（active window 内に絞る）
-              if (status === 'Todo' && isActiveToday) {
-                todoItems.push({ title, number });
+              if (title.includes('[PHASE]')) {
+                phaseCards.push({ number: issue.number, title });
+              } else if (title.includes('[WIN]')) {
+                // 今のフェーズ（written-exam）の WIN カードを抽出
+                if (labels.includes('phase:written-exam')) {
+                  winConditions.push({ number: issue.number, title });
+                }
+              } else if (labels.includes('priority:p0') && labels.includes('phase:written-exam')) {
+                p0Issues.push({ number: issue.number, title });
               }
             }
 
-            // Todo を issue 番号順にソート
-            todoItems.sort((a, b) => a.number - b.number);
-            inProgress.sort((a, b) => a.number - b.number);
+            // Phase Card: 直前対策期（phase-0）
+            const currentPhase = phaseCards.find(c =>
+              c.title.includes('直前対策') || c.title.includes('26/03')
+            ) || phaseCards[0];
+
+            // ソート（番号昇順）
+            winConditions.sort((a, b) => a.number - b.number);
+            p0Issues.sort((a, b) => a.number - b.number);
 
             // --- Issue 本文を構築 ---
             let body = `## ☀️ おはよう！ ${month}/${day}（${dayName}）の朝確認\n\n`;
@@ -149,49 +87,47 @@ jobs:
             body += `---\n\n`;
 
             // 今の Phase
-            if (phaseItem) {
-              const cleanTitle = phaseItem.title.replace(/^\[.*?\]\s*/, '');
+            if (currentPhase) {
+              const cleanTitle = currentPhase.title.replace(/^\[.*?\]\s*/, '');
               body += `### 📌 今の Phase\n`;
-              body += `- #${phaseItem.number} ${cleanTitle}\n\n`;
+              body += `- #${currentPhase.number} ${cleanTitle}\n\n`;
+            } else {
+              body += `### 📌 今の Phase\n`;
+              body += `- 直前対策期（2026-03-14 〜 2026-04-27）\n\n`;
             }
 
             // 勝ち条件（最大3件）
-            if (winItems.length > 0) {
-              body += `### 🏆 勝ち条件\n`;
-              for (const w of winItems.slice(0, 3)) {
-                const icon = w.status === 'In Progress' ? '🔥' : '⬜';
+            if (winConditions.length > 0) {
+              body += `### 🏆 勝ち条件 (Win Conditions)\n`;
+              for (const w of winConditions.slice(0, 3)) {
                 const cleanTitle = w.title.replace(/^\[.*?\]\s*/, '');
-                body += `- ${icon} #${w.number} ${cleanTitle}\n`;
+                body += `- ⬜ #${w.number} ${cleanTitle}\n`;
               }
               body += '\n';
             }
 
-            // In Progress
-            if (inProgress.length > 0) {
-              body += `### 🔥 今やっていること (In Progress)\n`;
-              for (const item of inProgress) {
-                body += `- [ ] #${item.number} ${item.title}\n`;
-              }
-              body += '\n';
-            }
-
-            // Today's Todo（最大3件）
-            if (todoItems.length > 0) {
-              const top = todoItems.slice(0, 3);
-              body += `### ✅ 今日できること (Todo)\n`;
+            // 今週・今日の P0 Issues（最大5件）
+            if (p0Issues.length > 0) {
+              const top = p0Issues.slice(0, 5);
+              body += `### ✅ 今日できること (P0 Issues)\n`;
               for (const item of top) {
                 body += `- [ ] #${item.number} ${item.title}\n`;
               }
-              if (todoItems.length > 3) {
-                body += `\n*他 ${todoItems.length - 3} 件は今日は見ない*\n`;
+              if (p0Issues.length > 5) {
+                body += `\n*他 ${p0Issues.length - 5} 件は今日は見ない*\n`;
               }
               body += '\n';
+            } else {
+              body += `### ✅ 今日やること\n`;
+              body += `- [ ] 第一種電気工事士 学科 過去問を 1 セット解く\n`;
+              body += `- [ ] 間違いを 3 分類する（知識不足 / ひっかけ / 計算ミス）\n`;
+              body += `- [ ] 弱点を 5 個以内でメモする\n\n`;
             }
 
             // 今日の記録テンプレート
             body += `---\n\n`;
             body += `### 📝 今日の記録テンプレート\n\n`;
-            body += `コメントにこれをコピーして記録する。\n\n`;
+            body += `コメントにコピーして今日の記録を残す。\n\n`;
             body += `\`\`\`\n`;
             body += `## ${todayStr}\n\n`;
             body += `- 解いた問題数: \n`;
@@ -215,4 +151,4 @@ jobs:
               body:  body,
             });
 
-            console.log(`Created morning focus issue #${created.data.number}`);
+            console.log(`Created morning focus issue #${created.data.number}: ${created.data.html_url}`);
