@@ -198,39 +198,35 @@
 
 ## 通知 / automation の現状
 
-### 旧 `life` 通知について
+### 朝通知 GitHub Actions ワークフロー
 
-ユーザーは以前、`foru1215/life` 側で毎朝 7 時に通知される運用をしていた。
+`2026-03-15` に次のワークフローを実装・プッシュ・動作確認済み。
 
-今回の要望:
+- ファイル: `.github/workflows/morning-focus.yml`
+- リポジトリ: `foru1215/shared-auto-sync`
+- スケジュール: 毎日 22:00 UTC（= 07:00 JST）
+- 動作: `[朝通知] YYYY-MM-DD（曜日）` という Issue を自動作成する
 
-- `life` の通知は消したい
-- 代わりに今回の `shared` プロジェクトの通知を朝 7 時に受けたい
+ワークフローの動作内容:
 
-### 調査結果
+- REST API でオープン Issue を全件取得
+- `[PHASE]` タイトル Issue から現 Phase Card を抽出
+- `phase:written-exam` ラベルを持つ `[WIN]` Issue から Win Condition を抽出（最大 3 件）
+- `priority:p0` + `phase:written-exam` の Issue を抽出（最大 5 件）
+- 上記をまとめた朝確認 Issue を作成し、今日の記録テンプレートを付属させる
 
-ローカルの automation 保存先と automation DB を確認した結果、現時点で存在している automation は次の 1 件のみ。
+テスト結果:
 
-- `shared-morning-focus`
+- `2026-03-15` に手動トリガーで実行 → Issue #97 作成確認済み
+- Phase Card `#65`、Win Condition `#72 #73 #74`、P0 Issues `#19 #20 #23 #24` が正しく抽出された
 
-確認できた状態:
+次回自動実行: `2026-03-16 07:00 JST`（22:00 UTC）
 
-- status: `ACTIVE`
-- 次回実行: `2026-03-16 07:00 JST`
-- workspace: `C:/Users/forui/my-app/shared`
+注意:
 
-`life` の automation は、現時点でローカルには見つかっていない。
-
-### テスト通知について
-
-- `shared-test-ping` を一度作成した
-- その後、ユーザーの指示で削除
-- 代わりに inbox へ手動のテスト通知を直接投入
-- ユーザー側で「通知が見えたか」の確認待ち
-
-未確定事項:
-
-- OS レベルの通知ポップアップが実際に見えたかどうかは、まだユーザー未回答
+- GitHub Actions の default `GITHUB_TOKEN` は user-level Projects v2 GraphQL に非対応
+- そのため Projects v2 クエリではなく REST Issues API で代替している
+- 将来的に Projects v2 から Status を取得したい場合は `PROJECT_TOKEN` secret（`project` スコープ付き PAT）を追加すれば対応可能
 
 ## 会話の流れの要約
 
@@ -256,18 +252,22 @@
 
 はまだ確認し切れていない。
 
-### 2. 通知の見え方の実地確認
-
-- `shared-morning-focus` は設定上は有効
-- ただし、実際にユーザーの環境で通知として見えるかの最終確認は未完
-
-### 3. さらなる簡略化の余地
+### 2. さらなる簡略化の余地
 
 必要なら次のような追加改善余地がある。
 
 - 「今週の 3 件だけ」を表示する専用ドキュメント
 - board の field をさらに簡略化
 - phase ごとの運用ルールをもっと短文化
+
+### 3. Projects v2 Status を朝通知に反映したい場合
+
+現在の朝通知は Labels ベース（REST API）。
+Projects v2 の `Status` フィールド（Todo / In Progress / Backlog 等）を朝通知に反映したい場合は:
+
+1. `project` + `repo` スコープの PAT を発行する
+2. `foru1215/shared-auto-sync` の Settings → Secrets → Actions に `PROJECT_TOKEN` として登録する
+3. `.github/workflows/morning-focus.yml` の `github-token: ${{ secrets.GITHUB_TOKEN }}` を `${{ secrets.PROJECT_TOKEN }}` に変更してプッシュする
 
 ## いま他モデルや将来の自分に伝えるべきこと
 
@@ -278,7 +278,9 @@
 - 品質要求は高く、曖昧な完了条件を嫌う
 - 今の主役は第一種電気工事士 学科
 - セキュリティは OT / ICS の最小トラックとして追加済み
-- 通知は `shared-morning-focus` が本番で、`life` はローカルでは見つかっていない
+- 朝通知は `.github/workflows/morning-focus.yml` が本番（毎日 07:00 JST に `[朝通知]` Issue を作成）
+- `validate: FAIL 0 / WARN 0`、`pytest: 17 passed`、`audit: FAIL 0 / WARN 0`、sync 収束済み（2026-03-15 確認）
+- 全 project ファイルは `foru1215/shared-auto-sync` に commit・push 済み（2026-03-15）
 
 ## 直近のおすすめ確認順
 
