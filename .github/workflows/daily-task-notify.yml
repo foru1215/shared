@@ -11,14 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      repository-projects: read
     steps:
       - name: 今日のタスクを Issue に作成
         uses: actions/github-script@v7
-        env:
-          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN || github.token }}
         with:
-          github-token: ${{ secrets.PROJECT_TOKEN || github.token }}
+          github-token: ${{ github.token }}
           script: |
             // ── JST 日付 ──────────────────────────────────────────────
             const now = new Date();
@@ -28,105 +25,67 @@ jobs:
             const dd   = String(jst.getUTCDate()).padStart(2, '0');
             const todayStr = `${yyyy}-${mm}-${dd}`;
             const dayName  = ['日','月','火','水','木','金','土'][jst.getUTCDay()];
+            const today    = new Date(`${todayStr}T00:00:00`);
 
             // ── 前日の通知 Issue を Close ────────────────────────────
             const oldIssues = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              state: 'open',
-              labels: 'daily-notify',
+              owner:    context.repo.owner,
+              repo:     context.repo.repo,
+              state:    'open',
+              labels:   'daily-notify',
               per_page: 20,
             });
             for (const issue of oldIssues.data) {
               await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo:  context.repo.repo,
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
                 issue_number: issue.number,
-                state: 'closed',
+                state:        'closed',
               });
             }
 
-            // ── GitHub Project からアイテム取得 ──────────────────────
-            const projectId   = "PVT_kwHOD5C6os4BRuWs";
-            const startFieldId = "PVTF_lAHOD5C6os4BRuWszg_egfc"; // 開始日
-            const endFieldId   = "PVTF_lAHOD5C6os4BRuWszg_egfg"; // 終了日
-            const statusFieldId = "PVTSSF_lAHOD5C6os4BRuWszg_d-e4"; // Status
-
-            let allItems = [];
-            let cursor   = null;
-            let hasNext  = true;
-
-            while (hasNext) {
-              const after = cursor ? `, after: "${cursor}"` : '';
-              const q = `query {
-                node(id: "${projectId}") {
-                  ... on ProjectV2 {
-                    items(first: 100${after}) {
-                      pageInfo { hasNextPage endCursor }
-                      nodes {
-                        fieldValues(first: 20) {
-                          nodes {
-                            ... on ProjectV2ItemFieldDateValue {
-                              date
-                              field { ... on ProjectV2Field { id } }
-                            }
-                            ... on ProjectV2ItemFieldSingleSelectValue {
-                              name
-                              field { ... on ProjectV2SingleSelectField { id } }
-                            }
-                          }
-                        }
-                        content {
-                          ... on Issue {
-                            number title body state
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }`;
-              const res = await github.graphql(q);
-              const page = res.node.items;
-              allItems = allItems.concat(page.nodes);
-              hasNext  = page.pageInfo.hasNextPage;
-              cursor   = page.pageInfo.endCursor;
+            // ── 全 Open Issue を取得（最大 300 件）─────────────────────
+            let allIssues = [];
+            for (let page = 1; page <= 3; page++) {
+              const res = await github.rest.issues.listForRepo({
+                owner:    context.repo.owner,
+                repo:     context.repo.repo,
+                state:    'open',
+                per_page: 100,
+                page,
+              });
+              allIssues = allIssues.concat(res.data);
+              if (res.data.length < 100) break;
             }
 
-            // ── 今日が開始〜終了の範囲内・未完了のみ抽出 ─────────────
-            const today = new Date(`${todayStr}T00:00:00`);
+            // ── 今日が実施範囲の Issue を抽出 ────────────────────────
+            // ボディ内の「- 期間: YYYY-MM-DD 〜 YYYY-MM-DD」を解析
             const tasks = [];
 
-            for (const item of allItems) {
-              if (!item.content || item.content.state !== 'OPEN') continue;
+            for (const issue of allIssues) {
+              // daily-notify ラベル自身はスキップ
+              if (issue.labels.some(l => l.name === 'daily-notify')) continue;
 
-              let startDate = null, endDate = null, status = null;
-              for (const fv of item.fieldValues.nodes) {
-                if (fv.date && fv.field) {
-                  if (fv.field.id === startFieldId) startDate = fv.date;
-                  if (fv.field.id === endFieldId)   endDate   = fv.date;
-                }
-                if (fv.name && fv.field?.id === statusFieldId) status = fv.name;
-              }
+              const body = issue.body || '';
 
-              if (!startDate || !endDate) continue;
-              if (status === '完了' || status === '延期') continue;
+              // 期間行を取得
+              const periodMatch = body.match(/- 期間: (\d{4}-\d{2}-\d{2}) 〜 (\d{4}-\d{2}-\d{2})/);
+              if (!periodMatch) continue;
 
-              const s = new Date(`${startDate}T00:00:00`);
-              const e = new Date(`${endDate}T00:00:00`);
-              if (today < s || today > e) continue;
+              const startDate = new Date(`${periodMatch[1]}T00:00:00`);
+              const endDate   = new Date(`${periodMatch[2]}T00:00:00`);
+              if (today < startDate || today > endDate) continue;
 
-              // Issue ボディから 実行メモ（朝/昼/夕）を抽出
+              // 実行メモ（朝/昼/夕）を抽出
               const memos = [];
-              for (const line of (item.content.body || '').split('\n')) {
+              for (const line of body.split('\n')) {
                 const m = line.match(/^- 実行メモ: (.+)$/);
-                if (m) memos.push(m[1]);
+                if (m) memos.push(m[1].trim());
               }
 
               tasks.push({
-                number: item.content.number,
-                title:  item.content.title,
-                status: status || 'バックログ',
+                number: issue.number,
+                title:  issue.title,
                 memos,
               });
             }
@@ -139,14 +98,11 @@ jobs:
             tasks.sort((a, b) => a.number - b.number);
 
             // ── Issue 本文を構築 ────────────────────────────────────
-            const statusIcon = s =>
-              s === '進行中' ? '🔵' : s === '未着手' ? '🟡' : '⚪';
-
             let body = `## ☀️ ${yyyy}/${mm}/${dd}（${dayName}）のタスク\n\n`;
             body += `**${tasks.length}件** が本日の実施範囲です。WIP 上限3つを守って進めよう。\n\n---\n\n`;
 
             for (const t of tasks) {
-              body += `### ${statusIcon(t.status)} #${t.number} ${t.title}\n\n`;
+              body += `### #${t.number} ${t.title}\n\n`;
               if (t.memos.length > 0) {
                 for (const memo of t.memos) {
                   body += `> ${memo}\n`;
